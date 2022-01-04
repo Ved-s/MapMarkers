@@ -29,19 +29,19 @@ namespace MapMarkers
             TagCompound tag = new TagCompound();
             tag["x"] = Position.X;
             tag["y"] = Position.Y;
-            tag["item"] = Item;
+            tag["item"] = ItemIO.Save(Item);
             tag["name"] = Name;
             return tag;
         }
 
         public static MapMarker FromData(TagCompound data) 
         {
-            Item item = data["item"] as Item;
-            if (item == null)
-            {
-                item = new Item();
-                item.SetDefaults(data.GetInt("item"));
-            }
+            Item item = new Item();
+            object i = data["item"];
+            if (i is int id)
+                item.SetDefaults(id);
+            else if (i is TagCompound tag)
+                ItemIO.Load(item, tag);
 
             return new MapMarker(data.GetString("name"), new Point(data.GetInt("x"), data.GetInt("y")), item);
         }
