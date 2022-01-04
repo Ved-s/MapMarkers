@@ -8,7 +8,7 @@ namespace MapMarkers
 {
 	public class MapMarkers : Mod
 	{
-        public static Dictionary<int, List<MapMarker>> Markers = new Dictionary<int, List<MapMarker>>();
+        public static Dictionary<int, List<MapMarker>> Markers;
 
         public static Hotkeys Hotkeys;
 
@@ -25,6 +25,7 @@ namespace MapMarkers
         {
             MarkerGui = new MarkerGui();
             Hotkeys = new Hotkeys();
+            Markers = new Dictionary<int, List<MapMarker>>();
         }
 
         public override void Unload()

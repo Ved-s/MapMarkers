@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using Terraria;
 using Terraria.ID;
@@ -19,6 +20,9 @@ namespace MapMarkers
             MiddlePressed = Main.mouseMiddle && Main.mouseMiddleRelease;
             RightPressed = Main.mouseRight && Main.mouseRightRelease;
 
+            if (!MapMarkers.Markers.ContainsKey(Main.worldID))
+                MapMarkers.Markers.Add(Main.worldID, new List<MapMarker>());
+
             foreach (MapMarker m in MapMarkers.Markers[Main.worldID]) 
             {
                 if (m.Captured) 
@@ -32,6 +36,9 @@ namespace MapMarkers
         internal static void PostDrawFullscreenMap(ref string mouseText)
         {
             Main.spriteBatch.End();
+
+            if (!MapMarkers.Markers.ContainsKey(Main.worldID))
+                MapMarkers.Markers.Add(Main.worldID, new List<MapMarker>());
 
             foreach (MapMarker m in MapMarkers.Markers[Main.worldID].ToArray())
             {

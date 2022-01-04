@@ -25,6 +25,7 @@ namespace MapMarkers
 
         public override void Load(TagCompound tag)
         {
+
             MapMarkers.Markers.Clear();
 
             foreach (KeyValuePair<string, object> v in tag) 
