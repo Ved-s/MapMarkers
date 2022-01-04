@@ -27,6 +27,14 @@ namespace MapMarkers
             Hotkeys = new Hotkeys();
         }
 
+        public override void Unload()
+        {
+            MarkerGui = null;
+            Hotkeys = null;
+            Markers = null;
+            Instance = null;
+        }
+
         public override void PostDrawFullscreenMap(ref string mouseText)
         {
             MapRenderer.PostDrawFullscreenMap(ref mouseText);
