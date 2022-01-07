@@ -27,8 +27,12 @@ namespace MapMarkers
 
         public MapMarker Marker;
 
-        public MarkerGui() 
+        private MapMarkers MapMarkers;
+
+        public MarkerGui(MapMarkers mod) 
         {
+            MapMarkers = mod;
+
             UI = new UserInterface();
             UI.IsVisible = false;
 
@@ -96,16 +100,16 @@ namespace MapMarkers
                 Marker = null;
             };
 
-            UI.CurrentState.Append(Reload = new UIAutoScaleTextTextPanel<string>("Reload UI"));
-            Reload.Top.Set(Main.Top.Pixels + 420, 0);
-            Reload.Left.Set(Main.Left.Pixels + 320, 0);
-            Reload.Width.Set(100, 0);
-            Reload.Height.Set(30, 0);
-            Reload.BackgroundColor = Color.Yellow;
-            Reload.OnClick += (ev, ui) =>
-            {
-                InitUI();
-            };
+            //UI.CurrentState.Append(Reload = new UIAutoScaleTextTextPanel<string>("Reload UI"));
+            //Reload.Top.Set(Main.Top.Pixels + 420, 0);
+            //Reload.Left.Set(Main.Left.Pixels + 320, 0);
+            //Reload.Width.Set(100, 0);
+            //Reload.Height.Set(30, 0);
+            //Reload.BackgroundColor = Color.Yellow;
+            //Reload.OnClick += (ev, ui) =>
+            //{
+            //    InitUI();
+            //};
 
             UI.CurrentState.Append(Cancel = new UIAutoScaleTextTextPanel<string>("Cancel"));
             Cancel.Top.Set(Main.Top.Pixels + 465, 0);
@@ -115,7 +119,7 @@ namespace MapMarkers
             Cancel.OnClick += (ev, ui) =>
             {
                 if (Marker.BrandNew)
-                    MapMarkers.Markers[Terraria.Main.worldID].Remove(Marker);
+                    MapMarkers.CurrentMarkers.Remove(Marker);
                 Marker = null;
             };
 

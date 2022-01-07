@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Terraria;
 using Terraria.ID;
@@ -10,36 +11,82 @@ namespace MapMarkers
 {
     class MapPlayer : ModPlayer
     {
+        private MapMarkers MapMarkers => mod as MapMarkers;
+
+        private Dictionary<int, List<MapMarker>> MyMarkers 
+        {
+            get 
+            {
+                int id = player.name.GetHashCode();
+
+                if (MapMarkers.AllMarkers.ContainsKey(id))
+                    return MapMarkers.AllMarkers[id];
+
+                Dictionary<int, List<MapMarker>> markers = new Dictionary<int, List<MapMarker>>();
+                MapMarkers.AllMarkers.Add(id, markers);
+                return markers;
+            }
+        }
+
+        static List<MapPlayer> Instances = new List<MapPlayer>();
+
+        public MapPlayer() 
+        {
+            Instances.Add(this);
+        }
+
         public override TagCompound Save()
         {
             TagCompound tag = new TagCompound();
 
-            foreach (KeyValuePair<int, List<MapMarker>> world in MapMarkers.Markers)
+            foreach (KeyValuePair<int, List<MapMarker>> world in MyMarkers)
             {
-                tag[$"markers_{world.Key}"] = world.Value.Select(x => x.GetData()).ToList();
+                string key = $"markers_{world.Key}";
+                List<TagCompound> list = world.Value.Select(x => x.GetData()).ToList();
+                tag[key] = list;
+
+                mod.Logger.InfoFormat("Saved {0} markers into {1}", list.Count, key);
             }
+            mod.Logger.InfoFormat("{0} tags total", tag.Count);
 
             return tag;
-
         }
 
         public override void Load(TagCompound tag)
         {
+            Dictionary<int, List<MapMarker>> markers = MyMarkers;
+            markers.Clear();
 
-            MapMarkers.Markers.Clear();
+            mod.Logger.InfoFormat("[{0}] Found {1} tags", player.name, tag.Count);
 
             foreach (KeyValuePair<string, object> v in tag) 
             {
+                mod.Logger.InfoFormat("Found tag {0}", v.Key);
+
                 if (v.Key.StartsWith("markers_")) 
                 {
-                    int id = int.Parse(v.Key.Substring(8));
-                    MapMarkers.Markers.Add(id, new List<MapMarker>());
+                    int wid = int.Parse(v.Key.Substring(8));
+                    markers.Add(wid, new List<MapMarker>());
 
                     foreach (TagCompound d in (IList<TagCompound>)v.Value)
-                        MapMarkers.Markers[id].Add(MapMarker.FromData(d));
+                        markers[wid].Add(MapMarker.FromData(d));
+                    mod.Logger.InfoFormat("Loaded {0} markers for world {1}", markers.Count, wid);
                 }
             }
+        }
 
+        public override void OnEnterWorld(Player player)
+        {
+            base.OnEnterWorld(player);
+
+            Dictionary<int, List<MapMarker>> markers = MyMarkers;
+
+            if (!markers.ContainsKey(Main.worldID))
+                markers.Add(Main.worldID, new List<MapMarker>());
+
+            MapMarkers.CurrentMarkers = markers[Main.worldID];
+
+            mod.Logger.InfoFormat("Entered world {0}", Main.worldID);
         }
 
         public override void PostUpdate()
@@ -58,7 +105,7 @@ namespace MapMarkers
 
                 Main.mapFullscreen = false;
                 m.BrandNew = true;
-                MapMarkers.Markers[Main.worldID].Add(m);
+                MapMarkers.CurrentMarkers.Add(m);
                 MapMarkers.MarkerGui.SetMarker(m);
             }
         }

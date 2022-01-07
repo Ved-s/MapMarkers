@@ -9,6 +9,11 @@ namespace MapMarkers
 {
     public class Hotkeys
     {
-        public ModHotKey CreateMarker = MapMarkers.Instance.RegisterHotKey("Create Marker", "B");
+        public Hotkeys(MapMarkers mod) 
+        {
+            CreateMarker = mod.RegisterHotKey("Create Marker", "B");
+        }
+
+        public ModHotKey CreateMarker;
     }
 }

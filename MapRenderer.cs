@@ -10,20 +10,25 @@ using Terraria.Localization;
 
 namespace MapMarkers
 {
-    static class MapRenderer
+    public class MapRenderer
     {
-        internal static bool MiddlePressed = false;
-        internal static bool RightPressed = false;
+        internal bool MiddlePressed = false;
+        internal bool RightPressed = false;
 
-        internal static void Update() 
+        private MapMarkers MapMarkers;
+
+        public MapRenderer(MapMarkers mod) 
+        {
+            MapMarkers = mod;
+        }
+
+        internal void Update() 
         {
             MiddlePressed = Main.mouseMiddle && Main.mouseMiddleRelease;
             RightPressed = Main.mouseRight && Main.mouseRightRelease;
 
-            if (!MapMarkers.Markers.ContainsKey(Main.worldID))
-                MapMarkers.Markers.Add(Main.worldID, new List<MapMarker>());
-
-            foreach (MapMarker m in MapMarkers.Markers[Main.worldID]) 
+            if (MapMarkers.CurrentMarkers != null)
+            foreach (MapMarker m in MapMarkers.CurrentMarkers) 
             {
                 if (m.Captured) 
                 {
@@ -33,14 +38,11 @@ namespace MapMarkers
             }
         }
 
-        internal static void PostDrawFullscreenMap(ref string mouseText)
+        internal void PostDrawFullscreenMap(ref string mouseText)
         {
             Main.spriteBatch.End();
 
-            if (!MapMarkers.Markers.ContainsKey(Main.worldID))
-                MapMarkers.Markers.Add(Main.worldID, new List<MapMarker>());
-
-            foreach (MapMarker m in MapMarkers.Markers[Main.worldID].ToArray())
+            foreach (MapMarker m in MapMarkers.CurrentMarkers.ToArray())
             {
                 Texture2D tex = Main.itemTexture[m.Item.type];
 
@@ -73,11 +75,11 @@ namespace MapMarkers
             MapMarkers.MarkerGui.Draw();
         }
 
-        private static void MarkerHover(MapMarker m)
+        private void MarkerHover(MapMarker m)
         {
             if (Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
             {
-                MapMarkers.Markers[Main.worldID].Remove(m);
+                MapMarkers.CurrentMarkers.Remove(m);
             }
             else if (MiddlePressed)
             {

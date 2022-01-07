@@ -8,37 +8,31 @@ namespace MapMarkers
 {
 	public class MapMarkers : Mod
 	{
-        public static Dictionary<int, List<MapMarker>> Markers;
+        public List<MapMarker> CurrentMarkers;
+        public Hotkeys Hotkeys;
+        public MarkerGui MarkerGui;
+        public MapRenderer Renderer;
 
-        public static Hotkeys Hotkeys;
-
-        public static MapMarkers Instance;
-
-        public static MarkerGui MarkerGui;
+        public Dictionary<int, Dictionary<int, List<MapMarker>>> AllMarkers = new Dictionary<int, Dictionary<int,List<MapMarker>>>();
 
         public MapMarkers() 
         {
-            Instance = this;
         }
 
         public override void Load()
         {
-            MarkerGui = new MarkerGui();
-            Hotkeys = new Hotkeys();
-            Markers = new Dictionary<int, List<MapMarker>>();
+            MarkerGui = new MarkerGui(this);
+            Hotkeys = new Hotkeys(this);
+            Renderer = new MapRenderer(this);
         }
 
         public override void Unload()
         {
-            MarkerGui = null;
-            Hotkeys = null;
-            Markers = null;
-            Instance = null;
         }
 
         public override void PostDrawFullscreenMap(ref string mouseText)
         {
-            MapRenderer.PostDrawFullscreenMap(ref mouseText);
+            Renderer.PostDrawFullscreenMap(ref mouseText);
         }
 
         public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
@@ -50,7 +44,7 @@ namespace MapMarkers
         public override void UpdateUI(GameTime gameTime)
         {
             base.UpdateUI(gameTime);
-            MapRenderer.Update();
+            Renderer.Update();
             MarkerGui.Update(gameTime);
         }
     }
