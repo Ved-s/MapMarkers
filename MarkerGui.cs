@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Terraria;
+using Terraria.Audio;
+using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.ModLoader;
@@ -27,11 +29,11 @@ namespace MapMarkers
 
         public MapMarker Marker;
 
-        private MapMarkers MapMarkers;
+        private MapSystem MapSystem;
 
-        public MarkerGui(MapMarkers mod) 
+        public MarkerGui(MapSystem system)
         {
-            MapMarkers = mod;
+            MapSystem = system;
 
             UI = new UserInterface();
             UI.IsVisible = false;
@@ -39,7 +41,7 @@ namespace MapMarkers
             UI.SetState(new UIState());
         }
 
-        internal void InitUI() 
+        internal void InitUI()
         {
             UI.CurrentState.RemoveAllChildren();
             UI.CurrentState.Append(Main = new UIPanel());
@@ -51,12 +53,12 @@ namespace MapMarkers
 
             Main.OnClick += (ev, ui) =>
             {
-                foreach (Item i in Items)
+                foreach (Item item in Items)
                 {
-                    Rectangle rect = new Rectangle((int)i.position.X, (int)i.position.Y, Terraria.Main.inventoryBackTexture.Width, Terraria.Main.inventoryBackTexture.Height);
+                    Rectangle rect = new Rectangle((int)item.position.X, (int)item.position.Y, (int)(TextureAssets.InventoryBack.Value.Width * 0.8f), (int)(TextureAssets.InventoryBack.Value.Height * 0.8f));
                     if (rect.Contains(Terraria.Main.MouseScreen.ToPoint()))
                     {
-                        Marker.Item = i;
+                        Marker.Item = item;
                     }
                 }
             };
@@ -119,7 +121,7 @@ namespace MapMarkers
             Cancel.OnClick += (ev, ui) =>
             {
                 if (Marker.BrandNew)
-                    MapMarkers.CurrentMarkers.Remove(Marker);
+                    MapSystem.CurrentMarkers.Remove(Marker);
                 Marker = null;
             };
 
@@ -129,14 +131,14 @@ namespace MapMarkers
             ReloadItems();
         }
 
-        private void Hover(UIPanel e, Color? hovered = null, Color? normal = null) 
+        private void Hover(UIPanel e, Color? hovered = null, Color? normal = null)
         {
             hovered = hovered ?? new Color(63, 82, 151);
             normal = normal ?? new Color(63, 82, 151) * 0.7f;
 
             e.OnMouseOver += (a, b) =>
             {
-                Terraria.Main.PlaySound(SoundID.MenuTick);
+                SoundEngine.PlaySound(SoundID.MenuTick);
                 e.BackgroundColor = hovered.Value;
             };
 
@@ -152,7 +154,9 @@ namespace MapMarkers
 
             string search = Search.CurrentString.ToLower();
 
-            for (int i = 1; i < Terraria.Main.itemTexture.Length; i++)
+            
+
+            for (int i = 1; i < ItemLoader.ItemCount; i++)
             {
                 if (Items.Count >= 25) break;
 
@@ -166,11 +170,20 @@ namespace MapMarkers
             }
         }
 
-        public void SetMarker(MapMarker m) 
+        public void SetMarker(MapMarker m)
         {
             Marker = m;
 
             if (Main == null) InitUI();
+
+            Main.Top = new StyleDimension(Terraria.Main.screenHeight / Terraria.Main.UIScale / 2 - 250, 0);
+            Main.Left = new StyleDimension(Terraria.Main.screenWidth / Terraria.Main.UIScale / 2 - 150, 0);
+
+            Ok.Top.Set(Main.Top.Pixels + 465, 0);
+            Ok.Left.Set(Main.Left.Pixels, 0);
+
+            Cancel.Top.Set(Main.Top.Pixels + 465, 0);
+            Cancel.Left.Set(Main.Left.Pixels + 200, 0);
 
             Name.SetText(m.Name);
         }
@@ -185,19 +198,24 @@ namespace MapMarkers
 
                 UI.Draw(Terraria.Main.spriteBatch, null);
 
-                CalculatedStyle cs =  Main.GetDimensions();
+                CalculatedStyle cs = Main.GetDimensions();
+
+                float scale = Terraria.Main.inventoryScale;
+                Terraria.Main.inventoryScale = 0.8f;
 
                 Vector2 pos = new Vector2(cs.X, cs.Y);
-                pos += new Vector2(32, 134) * Terraria.Main.UIScale;
+                pos += new Vector2(32, 134);// * Terraria.Main.UIScale;
                 ItemSlot.Draw(Terraria.Main.spriteBatch, ref Marker.Item, ItemSlot.Context.InventoryCoin, pos);
 
-                for (int i = 0; i < Items.Count; i++) 
+                for (int i = 0; i < Items.Count; i++)
                 {
                     Item item = Items[i];
                     Vector2 itemPos = pos + new Vector2((i % 5) * 49, (i / 5) * 49 + 50);
                     item.position = itemPos;
                     ItemSlot.Draw(Terraria.Main.spriteBatch, ref item, ItemSlot.Context.InventoryCoin, itemPos);
                 }
+
+                Terraria.Main.inventoryScale = scale;
             }
             return true;
         }

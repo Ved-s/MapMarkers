@@ -1,8 +1,10 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using ReLogic.Graphics;
 using System;
 using Terraria;
+using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.GameInput;
 using Terraria.UI;
@@ -14,10 +16,10 @@ namespace MapMarkers
         public bool UnfocusOnTab { get; internal set; }
 
         public event EventHandler OnTextChange;
-
         public event EventHandler OnUnfocus;
-
         public event EventHandler OnTab;
+
+        public DynamicSpriteFont Font => FontAssets.MouseText.Value;
 
         public UIFocusInputTextField(string hintText)
         {
@@ -103,11 +105,11 @@ namespace MapMarkers
 
             Vector2 pos = new Vector2(dimensions.X + 6, dimensions.Y);
 
-            float h = Main.fontMouseText.LineSpacing - 8;
+            float h = Font.LineSpacing - 8;
 
             if (CurrentString.Length == 0 && !Focused)
             {
-                h = Main.fontMouseText.LineSpacing - 8;
+                h = Font.LineSpacing - 8;
 
                 pos.Y += (dimensions.Height - h) / 2;
 

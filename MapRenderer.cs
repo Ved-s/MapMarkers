@@ -7,88 +7,86 @@ using System.Text;
 using Terraria;
 using Terraria.ID;
 using Terraria.Localization;
+using Terraria.Map;
+using Terraria.ModLoader;
+using Terraria.GameContent;
+using ReLogic.Content;
+using Terraria.Initializers;
 
 namespace MapMarkers
 {
-    public class MapRenderer
+    public class MapRenderer : ModMapLayer
     {
         internal bool MiddlePressed = false;
         internal bool RightPressed = false;
 
-        private MapMarkers MapMarkers;
+        private MapSystem MapSystem => ModContent.GetInstance<MapSystem>();
 
-        public MapRenderer(MapMarkers mod) 
-        {
-            MapMarkers = mod;
-        }
+        internal MapMarker Captured;
 
-        internal void Update() 
+        internal void Update()
         {
             MiddlePressed = Main.mouseMiddle && Main.mouseMiddleRelease;
             RightPressed = Main.mouseRight && Main.mouseRightRelease;
 
-            if (MapMarkers.CurrentMarkers != null)
-            foreach (MapMarker m in MapMarkers.CurrentMarkers) 
-            {
-                if (m.Captured) 
-                {
-                    if (Main.mouseMiddle && Main.mapFullscreen) m.Position = ScreenToMap(Main.MouseScreen).ToPoint();
-                    else m.Captured = false;
-                }
-            }
+            if (MapSystem.CurrentMarkers != null)
+                
+                    if (Captured is not null)
+                    {
+                        if (Main.mouseMiddle && Main.mapFullscreen) Captured.Position = ScreenToMap(Main.MouseScreen).ToPoint();
+                        else Captured = null;
+                    }
+                
         }
 
-        internal void PostDrawFullscreenMap(ref string mouseText)
+        public override void Draw(ref MapOverlayDrawContext context, ref string text)
         {
-            Main.spriteBatch.End();
+            if (MapSystem.CurrentMarkers is null) return;
 
-            foreach (MapMarker m in MapMarkers.CurrentMarkers.ToArray())
+            foreach (MapMarker m in MapSystem.CurrentMarkers.ToArray())
             {
-                Texture2D tex = Main.itemTexture[m.Item.type];
+                Asset<Texture2D> asset = TextureAssets.Item[m.Item.type];
 
+                if (!asset.IsLoaded) asset = Main.Assets.Request<Texture2D>(asset.Name, AssetRequestMode.ImmediateLoad);
+
+                Texture2D tex = asset.Value;
+                
                 Vector2 size = tex.Size();
                 Vector2 screenpos = MapToScreen(m.Position.ToVector2()) - size / 2;
-                Rectangle screenRect = new Rectangle((int)screenpos.X, (int)screenpos.Y, tex.Width, tex.Height);
 
-                if (screenRect.Contains(Main.MouseScreen.ToPoint()))
+                MapOverlayDrawContext.DrawResult result = context.Draw(tex, m.Position.ToVector2(), Terraria.UI.Alignment.Center);
+
+                if (result.IsMouseOver)
                 {
                     MarkerHover(m);
                     string markerText = m.Name + "\n" + GetCenteredPosition(m.Position);
-
+            
                     if (Main.keyState.PressingShift())
                         markerText += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
                     else
                         markerText += "\n[Shift] More";
-                    Main.spriteBatch.Begin();
-                    Utils.DrawBorderString(Main.spriteBatch, markerText, screenpos + new Vector2(size.X + 10, 0), Color.White);
-                    Main.spriteBatch.End();
 
-
+                    if (Main.mapFullscreen)
+                        Utils.DrawBorderString(Main.spriteBatch, markerText, screenpos + new Vector2(size.X + 10, 0), Color.White);
+                    else text = markerText;
                 }
-
-                Main.spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, null, null);
-                Main.spriteBatch.Draw(tex, screenpos, FixItemColor(m.Item.color));
-                Main.spriteBatch.End();
             }
-
-            Main.spriteBatch.Begin();
-            MapMarkers.MarkerGui.Draw();
         }
 
         private void MarkerHover(MapMarker m)
         {
             if (Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
             {
-                MapMarkers.CurrentMarkers.Remove(m);
+                MapSystem.CurrentMarkers.Remove(m);
             }
             else if (MiddlePressed)
             {
-                m.Captured = true;
+                Captured = m;
             }
             else if (RightPressed)
             {
                 Main.mapFullscreen = false;
-                MapMarkers.MarkerGui.SetMarker(m);
+                MapSystem.MarkerGui.SetMarker(m);
             }
         }
 
@@ -98,12 +96,12 @@ namespace MapMarkers
             return c;
         }
 
-        public static string GetCenteredPosition(Point pos) 
+        public static string GetCenteredPosition(Point pos)
         {
             int x = (int)(pos.X * 2f - Main.maxTilesX);
             int y = (int)(pos.Y * 2f - Main.maxTilesY);
 
-            string xs = 
+            string xs =
                 (x > 0) ? Language.GetTextValue("GameUI.CompassEast", x) :
                 ((x >= 0) ? Language.GetTextValue("GameUI.CompassCenter") :
                 Language.GetTextValue("GameUI.CompassWest", -x));

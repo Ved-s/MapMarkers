@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -11,66 +12,63 @@ namespace MapMarkers
 {
     class MapPlayer : ModPlayer
     {
-        private MapMarkers MapMarkers => mod as MapMarkers;
+        private MapSystem MapSystem => ModContent.GetInstance<MapSystem>();
 
-        private Dictionary<int, List<MapMarker>> MyMarkers 
+        public ModKeybind CreateMarker;
+
+        private Dictionary<int, List<MapMarker>> MyMarkers
         {
-            get 
+            get
             {
-                int id = player.name.GetHashCode();
+                int id = Player.name.GetHashCode();
 
-                if (MapMarkers.AllMarkers.ContainsKey(id))
-                    return MapMarkers.AllMarkers[id];
+                if (MapSystem.AllMarkers.ContainsKey(id))
+                    return MapSystem.AllMarkers[id];
 
                 Dictionary<int, List<MapMarker>> markers = new Dictionary<int, List<MapMarker>>();
-                MapMarkers.AllMarkers.Add(id, markers);
+                MapSystem.AllMarkers.Add(id, markers);
                 return markers;
             }
         }
 
-        static List<MapPlayer> Instances = new List<MapPlayer>();
 
-        public MapPlayer() 
+        public override void Load()
         {
-            Instances.Add(this);
+            CreateMarker = KeybindLoader.RegisterKeybind(Mod, "Create Marker", Keys.B);
         }
 
-        public override TagCompound Save()
+        public override void SaveData(TagCompound tag)
         {
-            TagCompound tag = new TagCompound();
-
             foreach (KeyValuePair<int, List<MapMarker>> world in MyMarkers)
             {
                 string key = $"markers_{world.Key}";
                 List<TagCompound> list = world.Value.Select(x => x.GetData()).ToList();
                 tag[key] = list;
 
-                mod.Logger.InfoFormat("Saved {0} markers into {1}", list.Count, key);
+                Mod.Logger.DebugFormat("Saved {0} markers into {1}", list.Count, key);
             }
-            mod.Logger.InfoFormat("{0} tags total", tag.Count);
-
-            return tag;
+            Mod.Logger.DebugFormat("{0} tags total", tag.Count);
         }
 
-        public override void Load(TagCompound tag)
+        public override void LoadData(TagCompound tag)
         {
             Dictionary<int, List<MapMarker>> markers = MyMarkers;
             markers.Clear();
 
-            mod.Logger.InfoFormat("[{0}] Found {1} tags", player.name, tag.Count);
+            Mod.Logger.DebugFormat("[{0}] Found {1} tags", Player.name, tag.Count);
 
-            foreach (KeyValuePair<string, object> v in tag) 
+            foreach (KeyValuePair<string, object> v in tag)
             {
-                mod.Logger.InfoFormat("Found tag {0}", v.Key);
+                Mod.Logger.DebugFormat("Found tag {0}", v.Key);
 
-                if (v.Key.StartsWith("markers_")) 
+                if (v.Key.StartsWith("markers_"))
                 {
                     int wid = int.Parse(v.Key.Substring(8));
                     markers.Add(wid, new List<MapMarker>());
 
                     foreach (TagCompound d in (IList<TagCompound>)v.Value)
                         markers[wid].Add(MapMarker.FromData(d));
-                    mod.Logger.InfoFormat("Loaded {0} markers for world {1}", markers.Count, wid);
+                    Mod.Logger.DebugFormat("Loaded {0} markers for world {1}", markers.Count, wid);
                 }
             }
         }
@@ -84,16 +82,16 @@ namespace MapMarkers
             if (!markers.ContainsKey(Main.worldID))
                 markers.Add(Main.worldID, new List<MapMarker>());
 
-            MapMarkers.CurrentMarkers = markers[Main.worldID];
+            MapSystem.CurrentMarkers = markers[Main.worldID];
 
-            mod.Logger.InfoFormat("Entered world {0}", Main.worldID);
+            Mod.Logger.DebugFormat("Entered world {0}", Main.worldID);
         }
 
         public override void PostUpdate()
         {
-            if (MapMarkers.Hotkeys.CreateMarker.JustPressed)
+            if (CreateMarker.JustPressed)
             {
-                if (MapMarkers.MarkerGui.Marker != null) return;
+                if (MapSystem.MarkerGui.Marker != null) return;
 
                 Item i = new Item();
                 i.SetDefaults(ItemID.TrifoldMap);
@@ -105,8 +103,8 @@ namespace MapMarkers
 
                 Main.mapFullscreen = false;
                 m.BrandNew = true;
-                MapMarkers.CurrentMarkers.Add(m);
-                MapMarkers.MarkerGui.SetMarker(m);
+                MapSystem.CurrentMarkers.Add(m);
+                MapSystem.MarkerGui.SetMarker(m);
             }
         }
     }

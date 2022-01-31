@@ -14,7 +14,6 @@ namespace MapMarkers
         public Point Position;
         public Item Item;
         public string Name;
-        public bool Captured;
         public bool BrandNew;
 
         public MapMarker(string name, Point position, Item item)
@@ -24,7 +23,7 @@ namespace MapMarkers
             Name = name;
         }
 
-        public TagCompound GetData() 
+        public TagCompound GetData()
         {
             TagCompound tag = new TagCompound();
             tag["x"] = Position.X;
@@ -34,7 +33,7 @@ namespace MapMarkers
             return tag;
         }
 
-        public static MapMarker FromData(TagCompound data) 
+        public static MapMarker FromData(TagCompound data)
         {
             Item item = new Item();
             object i = data["item"];
