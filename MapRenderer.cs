@@ -40,6 +40,8 @@ namespace MapMarkers
 
         internal void PostDrawFullscreenMap(ref string mouseText)
         {
+            if (MapMarkers.CurrentMarkers == null) return;
+
             Main.spriteBatch.End();
 
             foreach (MapMarker m in MapMarkers.CurrentMarkers.ToArray())
