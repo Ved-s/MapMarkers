@@ -172,6 +172,15 @@ namespace MapMarkers
 
             if (Main == null) InitUI();
 
+            Main.Top = new StyleDimension(Terraria.Main.screenHeight / Terraria.Main.UIScale / 2 - 250, 0);
+            Main.Left = new StyleDimension(Terraria.Main.screenWidth / Terraria.Main.UIScale / 2 - 150, 0);
+
+            Ok.Top.Set(Main.Top.Pixels + 465, 0);
+            Ok.Left.Set(Main.Left.Pixels, 0);
+
+            Cancel.Top.Set(Main.Top.Pixels + 465, 0);
+            Cancel.Left.Set(Main.Left.Pixels + 200, 0);
+
             Name.SetText(m.Name);
         }
 
@@ -187,17 +196,22 @@ namespace MapMarkers
 
                 CalculatedStyle cs =  Main.GetDimensions();
 
+                float scale = Terraria.Main.inventoryScale;
+                Terraria.Main.inventoryScale = 0.8f;
+
                 Vector2 pos = new Vector2(cs.X, cs.Y);
-                pos += new Vector2(32, 134) * Terraria.Main.UIScale;
+                pos += new Vector2(32, 134);
                 ItemSlot.Draw(Terraria.Main.spriteBatch, ref Marker.Item, ItemSlot.Context.InventoryCoin, pos);
 
-                for (int i = 0; i < Items.Count; i++) 
+                for (int i = 0; i < Items.Count; i++)
                 {
                     Item item = Items[i];
                     Vector2 itemPos = pos + new Vector2((i % 5) * 49, (i / 5) * 49 + 50);
                     item.position = itemPos;
                     ItemSlot.Draw(Terraria.Main.spriteBatch, ref item, ItemSlot.Context.InventoryCoin, itemPos);
                 }
+
+                Terraria.Main.inventoryScale = scale;
             }
             return true;
         }

@@ -14,7 +14,6 @@ namespace MapMarkers
         public Point Position;
         public Item Item;
         public string Name;
-        public bool Captured;
         public bool BrandNew;
 
         public MapMarker(string name, Point position, Item item)

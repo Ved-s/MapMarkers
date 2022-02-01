@@ -1,5 +1,5 @@
 displayName = Map Markers
 author = Ved_s
-version = 0.5
+version = 0.5.2
 side = Client
 homepage = https://github.com/Ved-s/MapMarkers
