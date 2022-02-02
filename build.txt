@@ -1,5 +1,5 @@
 displayName = Map Markers
 author = Ved_s
-version = 0.5.1
-side = Client
+version = 1.0
+side = NoSync
 homepage = https://github.com/Ved-s/MapMarkers/tree/1.4

@@ -1,17 +1,13 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using ReLogic.Content;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using Terraria;
-using Terraria.ID;
+using Terraria.GameContent;
 using Terraria.Localization;
 using Terraria.Map;
 using Terraria.ModLoader;
-using Terraria.GameContent;
-using ReLogic.Content;
-using Terraria.Initializers;
 
 namespace MapMarkers
 {
@@ -30,13 +26,12 @@ namespace MapMarkers
             RightPressed = Main.mouseRight && Main.mouseRightRelease;
 
             if (MapSystem.CurrentMarkers != null)
-                
-                    if (Captured is not null)
-                    {
-                        if (Main.mouseMiddle && Main.mapFullscreen) Captured.Position = ScreenToMap(Main.MouseScreen).ToPoint();
-                        else Captured = null;
-                    }
-                
+                if (Captured is not null)
+                {
+                    if (Net.MapClient.AllowEdit(Captured) && Main.mouseMiddle && Main.mapFullscreen) Net.MapClient.SetPos(Captured, ScreenToMap(Main.MouseScreen).ToPoint());
+                    else Captured = null;
+                }
+
         }
 
         public override void Draw(ref MapOverlayDrawContext context, ref string text)
@@ -50,7 +45,7 @@ namespace MapMarkers
                 if (!asset.IsLoaded) asset = Main.Assets.Request<Texture2D>(asset.Name, AssetRequestMode.ImmediateLoad);
 
                 Texture2D tex = asset.Value;
-                
+
                 Vector2 size = tex.Size();
                 Vector2 screenpos = MapToScreen(m.Position.ToVector2()) - size / 2;
 
@@ -60,14 +55,23 @@ namespace MapMarkers
                 {
                     MarkerHover(m);
                     string markerText = m.Name + "\n" + GetCenteredPosition(m.Position);
-            
-                    if (Main.keyState.PressingShift())
-                        markerText += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
-                    else
-                        markerText += "\n[Shift] More";
 
                     if (Main.mapFullscreen)
+                    {
+                        if (m.IsServerSide)
+                        {
+                            markerText += "\nOwner: " + m.ServerData.Owner;
+                        }
+
+                        if (Net.MapClient.AllowEdit(m))
+                        {
+                            if (Main.keyState.PressingShift())
+                                markerText += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
+                            else
+                                markerText += "\n[Shift] More";
+                        }
                         Utils.DrawBorderString(Main.spriteBatch, markerText, screenpos + new Vector2(size.X + 10, 0), Color.White);
+                    }
                     else text = markerText;
                 }
             }
@@ -75,18 +79,22 @@ namespace MapMarkers
 
         private void MarkerHover(MapMarker m)
         {
-            if (Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
+            if (Net.MapClient.AllowEdit(m))
             {
-                MapSystem.CurrentMarkers.Remove(m);
-            }
-            else if (MiddlePressed)
-            {
-                Captured = m;
-            }
-            else if (RightPressed)
-            {
-                Main.mapFullscreen = false;
-                MapSystem.MarkerGui.SetMarker(m);
+                if (Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
+                {
+                    if (m.IsServerSide) Net.MapClient.SetGlobal(m, false);
+                    MapSystem.CurrentMarkers.Remove(m);
+                }
+                else if (MiddlePressed)
+                {
+                    Captured = m;
+                }
+                else if (RightPressed)
+                {
+                    Main.mapFullscreen = false;
+                    MapSystem.MarkerGui.SetMarker(m);
+                }
             }
         }
 

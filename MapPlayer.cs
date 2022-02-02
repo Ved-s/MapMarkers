@@ -45,9 +45,9 @@ namespace MapMarkers
                 List<TagCompound> list = world.Value.Select(x => x.GetData()).ToList();
                 tag[key] = list;
 
-                Mod.Logger.DebugFormat("Saved {0} markers into {1}", list.Count, key);
+                //Mod.Logger.DebugFormat("Saved {0} markers into {1}", list.Count, key);
             }
-            Mod.Logger.DebugFormat("{0} tags total", tag.Count);
+            //Mod.Logger.DebugFormat("{0} tags total", tag.Count);
         }
 
         public override void LoadData(TagCompound tag)
@@ -55,11 +55,11 @@ namespace MapMarkers
             Dictionary<int, List<MapMarker>> markers = MyMarkers;
             markers.Clear();
 
-            Mod.Logger.DebugFormat("[{0}] Found {1} tags", Player.name, tag.Count);
+            //Mod.Logger.DebugFormat("[{0}] Found {1} tags", Player.name, tag.Count);
 
             foreach (KeyValuePair<string, object> v in tag)
             {
-                Mod.Logger.DebugFormat("Found tag {0}", v.Key);
+                //Mod.Logger.DebugFormat("Found tag {0}", v.Key);
 
                 if (v.Key.StartsWith("markers_"))
                 {
@@ -68,7 +68,7 @@ namespace MapMarkers
 
                     foreach (TagCompound d in (IList<TagCompound>)v.Value)
                         markers[wid].Add(MapMarker.FromData(d));
-                    Mod.Logger.DebugFormat("Loaded {0} markers for world {1}", markers.Count, wid);
+                    //Mod.Logger.DebugFormat("Loaded {0} markers for world {1}", markers.Count, wid);
                 }
             }
         }
@@ -76,7 +76,7 @@ namespace MapMarkers
         public override void OnEnterWorld(Player player)
         {
             base.OnEnterWorld(player);
-
+            if (Main.dedServ) return;
             Dictionary<int, List<MapMarker>> markers = MyMarkers;
 
             if (!markers.ContainsKey(Main.worldID))
@@ -84,11 +84,13 @@ namespace MapMarkers
 
             MapSystem.CurrentMarkers = markers[Main.worldID];
 
-            Mod.Logger.DebugFormat("Entered world {0}", Main.worldID);
+            //Mod.Logger.DebugFormat("Entered world {0}", Main.worldID);
+            Net.MapClient.RequestMarkers();
         }
 
         public override void PostUpdate()
         {
+            if (Main.dedServ) return;
             if (CreateMarker.JustPressed)
             {
                 if (MapSystem.MarkerGui.Marker != null) return;

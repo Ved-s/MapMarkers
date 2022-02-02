@@ -1,2 +1,3 @@
 Map Markers allows you to place markers on map.
-Markers are stored per-player so other players on server will not see your markers, but global markers are planned for future.
+Markers are stored per-player so other players on server will not see your markers, unless they set as Global.
+Global markers can be edited only by their owners, or anyone if owner set marker as "Public edit"
