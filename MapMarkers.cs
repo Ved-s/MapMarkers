@@ -1,5 +1,7 @@
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
+using System.IO;
+using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.UI;
@@ -26,8 +28,10 @@ namespace MapMarkers
             Renderer = new MapRenderer(this);
         }
 
-        public override void Unload()
+        public override void HandlePacket(BinaryReader reader, int whoAmI)
         {
+            if (Main.dedServ) ModContent.GetInstance<Net.MapServer>().HandlePacket(reader, whoAmI);
+            else Net.MapClient.HandlePacket(reader);
         }
 
         public override void PostDrawFullscreenMap(ref string mouseText)

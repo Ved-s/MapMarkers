@@ -2,10 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using Terraria;
-using Terraria.ID;
 using Terraria.Localization;
 
 namespace MapMarkers
@@ -17,29 +14,30 @@ namespace MapMarkers
 
         private MapMarkers MapMarkers;
 
-        public MapRenderer(MapMarkers mod) 
+        internal MapMarker Captured;
+
+        public MapRenderer(MapMarkers mod)
         {
             MapMarkers = mod;
         }
 
-        internal void Update() 
+        internal void Update()
         {
             MiddlePressed = Main.mouseMiddle && Main.mouseMiddleRelease;
             RightPressed = Main.mouseRight && Main.mouseRightRelease;
 
             if (MapMarkers.CurrentMarkers != null)
-            foreach (MapMarker m in MapMarkers.CurrentMarkers) 
-            {
-                if (m.Captured) 
+                if (Captured != null)
                 {
-                    if (Main.mouseMiddle && Main.mapFullscreen) m.Position = ScreenToMap(Main.MouseScreen).ToPoint();
-                    else m.Captured = false;
+                    if (Net.MapClient.AllowEdit(Captured) && Main.mouseMiddle && Main.mapFullscreen) Net.MapClient.SetPos(Captured, ScreenToMap(Main.MouseScreen).ToPoint());
+                    else Captured = null;
                 }
-            }
         }
 
         internal void PostDrawFullscreenMap(ref string mouseText)
         {
+            if (MapMarkers.CurrentMarkers == null) return;
+
             Main.spriteBatch.End();
 
             foreach (MapMarker m in MapMarkers.CurrentMarkers.ToArray())
@@ -55,10 +53,18 @@ namespace MapMarkers
                     MarkerHover(m);
                     string markerText = m.Name + "\n" + GetCenteredPosition(m.Position);
 
-                    if (Main.keyState.PressingShift())
-                        markerText += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
-                    else
-                        markerText += "\n[Shift] More";
+                    if (m.IsServerSide) 
+                    {
+                        markerText += "\nOwner: " + m.ServerData.Owner;
+                    }
+
+                    if (Net.MapClient.AllowEdit(m))
+                    {
+                        if (Main.keyState.PressingShift())
+                            markerText += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
+                        else
+                            markerText += "\n[Shift] More";
+                    }
                     Main.spriteBatch.Begin();
                     Utils.DrawBorderString(Main.spriteBatch, markerText, screenpos + new Vector2(size.X + 10, 0), Color.White);
                     Main.spriteBatch.End();
@@ -77,18 +83,22 @@ namespace MapMarkers
 
         private void MarkerHover(MapMarker m)
         {
-            if (Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
+            if (Net.MapClient.AllowEdit(m))
             {
-                MapMarkers.CurrentMarkers.Remove(m);
-            }
-            else if (MiddlePressed)
-            {
-                m.Captured = true;
-            }
-            else if (RightPressed)
-            {
-                Main.mapFullscreen = false;
-                MapMarkers.MarkerGui.SetMarker(m);
+                if (Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
+                {
+                    if (m.IsServerSide) Net.MapClient.SetGlobal(m, false);
+                    MapMarkers.CurrentMarkers.Remove(m);
+                }
+                else if (MiddlePressed)
+                {
+                    Captured = m;
+                }
+                else if (RightPressed)
+                {
+                    Main.mapFullscreen = false;
+                    MapMarkers.MarkerGui.SetMarker(m);
+                }
             }
         }
 
@@ -98,12 +108,12 @@ namespace MapMarkers
             return c;
         }
 
-        public static string GetCenteredPosition(Point pos) 
+        public static string GetCenteredPosition(Point pos)
         {
             int x = (int)(pos.X * 2f - Main.maxTilesX);
             int y = (int)(pos.Y * 2f - Main.maxTilesY);
 
-            string xs = 
+            string xs =
                 (x > 0) ? Language.GetTextValue("GameUI.CompassEast", x) :
                 ((x >= 0) ? Language.GetTextValue("GameUI.CompassCenter") :
                 Language.GetTextValue("GameUI.CompassWest", -x));
