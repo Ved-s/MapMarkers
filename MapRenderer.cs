@@ -29,10 +29,9 @@ namespace MapMarkers
             if (MapMarkers.CurrentMarkers != null)
                 if (Captured != null)
                 {
-                    if (Main.mouseMiddle && Main.mapFullscreen) Captured.Position = ScreenToMap(Main.MouseScreen).ToPoint();
+                    if (Net.MapClient.AllowEdit(Captured) && Main.mouseMiddle && Main.mapFullscreen) Net.MapClient.SetPos(Captured, ScreenToMap(Main.MouseScreen).ToPoint());
                     else Captured = null;
                 }
-
         }
 
         internal void PostDrawFullscreenMap(ref string mouseText)
@@ -54,10 +53,18 @@ namespace MapMarkers
                     MarkerHover(m);
                     string markerText = m.Name + "\n" + GetCenteredPosition(m.Position);
 
-                    if (Main.keyState.PressingShift())
-                        markerText += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
-                    else
-                        markerText += "\n[Shift] More";
+                    if (m.IsServerSide) 
+                    {
+                        markerText += "\nOwner: " + m.ServerData.Owner;
+                    }
+
+                    if (Net.MapClient.AllowEdit(m))
+                    {
+                        if (Main.keyState.PressingShift())
+                            markerText += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
+                        else
+                            markerText += "\n[Shift] More";
+                    }
                     Main.spriteBatch.Begin();
                     Utils.DrawBorderString(Main.spriteBatch, markerText, screenpos + new Vector2(size.X + 10, 0), Color.White);
                     Main.spriteBatch.End();
@@ -76,18 +83,22 @@ namespace MapMarkers
 
         private void MarkerHover(MapMarker m)
         {
-            if (Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
+            if (Net.MapClient.AllowEdit(m))
             {
-                MapMarkers.CurrentMarkers.Remove(m);
-            }
-            else if (MiddlePressed)
-            {
-                Captured = m;
-            }
-            else if (RightPressed)
-            {
-                Main.mapFullscreen = false;
-                MapMarkers.MarkerGui.SetMarker(m);
+                if (Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
+                {
+                    if (m.IsServerSide) Net.MapClient.SetGlobal(m, false);
+                    MapMarkers.CurrentMarkers.Remove(m);
+                }
+                else if (MiddlePressed)
+                {
+                    Captured = m;
+                }
+                else if (RightPressed)
+                {
+                    Main.mapFullscreen = false;
+                    MapMarkers.MarkerGui.SetMarker(m);
+                }
             }
         }
 
