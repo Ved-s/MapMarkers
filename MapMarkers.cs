@@ -54,7 +54,8 @@ namespace MapMarkers
 
         private static bool CanPauseGame()
         {
-            return ModContent.GetInstance<MapSystem>().MarkerGui.Marker is not null;
+            return ModContent.GetInstance<MapSystem>().MarkerGui.Marker is not null &&
+                (ModContent.GetInstance<MapConfig>().AutopauseOnUI || Main.autoPause);
         }
     }
 }
