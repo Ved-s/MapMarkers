@@ -146,7 +146,6 @@ namespace MapMarkers
             if (Edit != null)
                 Main.RemoveChild(Edit);
 
-
             if ((Terraria.Main.netMode == NetmodeID.MultiplayerClient || Net.MapClient.CanMakeGlobal)
                 && Marker.ServerData != null
                 && Marker.ServerData.Owner != Terraria.Main.LocalPlayer.name) return;
@@ -178,7 +177,6 @@ namespace MapMarkers
                 InitNetUI();
             };
             Hover(Edit, Marker.ServerData.PublicEdit ? ActiveHover : InactiveHover, Marker.ServerData.PublicEdit ? Active : Inactive);
-
         }
 
         private void Hover(UIPanel e, Color? hovered = null, Color? normal = null)
@@ -203,8 +201,6 @@ namespace MapMarkers
             Items.Clear();
 
             string search = Search.CurrentString.ToLower();
-
-            
 
             for (int i = 1; i < ItemLoader.ItemCount; i++)
             {
@@ -246,11 +242,11 @@ namespace MapMarkers
 
         internal bool Draw()
         {
-            Terraria.Main.blockInput = Marker != null;
+            Terraria.Main.blockInput = Marker is not null;
 
-            if (Marker != null)
+            if (Marker is not null)
             {
-                if (Main == null) InitUI();
+                if (Main is null) InitUI();
 
                 UI.Draw(Terraria.Main.spriteBatch, null);
 
@@ -260,7 +256,7 @@ namespace MapMarkers
                 Terraria.Main.inventoryScale = 0.8f;
 
                 Vector2 pos = new Vector2(cs.X, cs.Y);
-                pos += new Vector2(32, 134);// * Terraria.Main.UIScale;
+                pos += new Vector2(32, 134);
                 ItemSlot.Draw(Terraria.Main.spriteBatch, ref Marker.Item, ItemSlot.Context.InventoryCoin, pos);
 
                 for (int i = 0; i < Items.Count; i++)
@@ -278,12 +274,10 @@ namespace MapMarkers
 
         internal void Update(GameTime gameTime)
         {
-            if (Marker != null)
+            if (Marker is not null)
             {
                 UI.Update(gameTime);
             }
-
-
         }
     }
 }
