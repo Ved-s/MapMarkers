@@ -103,6 +103,7 @@ namespace MapMarkers
             {
                 Marker.BrandNew = false;
                 Marker = null;
+                Terraria.Main.blockInput = false;
             };
 
 #if DEBUG
@@ -128,6 +129,7 @@ namespace MapMarkers
                 if (Marker.BrandNew)
                     MapMarkers.CurrentMarkers.Remove(Marker);
                 Marker = null;
+                Terraria.Main.blockInput = false;
             };
             InitNetUI();
 
@@ -231,6 +233,8 @@ namespace MapMarkers
             Cancel.Top.Set(Main.Top.Pixels + 465, 0);
             Cancel.Left.Set(Main.Left.Pixels + 200, 0);
 
+            Terraria.Main.blockInput = true;
+
             UpdateData();
         }
 
@@ -242,8 +246,6 @@ namespace MapMarkers
 
         internal bool Draw()
         {
-            Terraria.Main.blockInput = Marker != null;
-
             if (Marker != null)
             {
                 if (Main == null) InitUI();
@@ -278,8 +280,6 @@ namespace MapMarkers
             {
                 UI.Update(gameTime);
             }
-
-
         }
     }
 }
