@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,14 +7,21 @@ using System.Text;
 using System.Threading.Tasks;
 using Terraria;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
 namespace MapMarkers.Net
 {
-    public class MapServer : ModWorld
+    public partial class MapServer : ModWorld
     {
         public List<MapMarker> Markers = new List<MapMarker>();
+        public int MaxMarkersLimit = 5;
+
+        private const string ExceededMarkerCapMessage = "[[c/00ff00:Map Markers]] [c/ff0000:Max player marker limit reached, cannot set to global]";
+
+        private const string MarkersNBTKey = "markers";
+        private const string MarkerCapNBTKey = "markerCap";
 
         public void HandlePacket(BinaryReader reader, int whoAmI)
         {
@@ -49,12 +57,28 @@ namespace MapMarkers.Net
 
             MapMarker marker = Markers.FirstOrDefault(m => m.ServerData.Id == id);
 
+#if DEBUG
             Console.WriteLine(string.Format("[Map Markers] Received message {0}, marker {1}", type, marker?.Name ?? "null"));
+#endif
 
             switch (type)
             {
                 case SyncMessageType.Add:
                     marker = MapMarker.Read(reader, id);
+
+                    int playerMarkerCount = 0;
+                    foreach (MapMarker m in Markers)
+                        if (m.ServerData.Owner == Main.player[whoAmI].name)
+                            playerMarkerCount++;
+
+                    if (playerMarkerCount > MaxMarkersLimit)
+                    {
+                        ModPacket p = CreateSyncPacket(marker, SyncMessageType.Remove);
+                        p.Send(whoAmI);
+                        NetMessage.SendChatMessageToClient(NetworkText.FromLiteral(ExceededMarkerCapMessage), Color.White, whoAmI);
+                        return;
+                    }
+
                     Markers.Add(marker);
                     break;
                 case SyncMessageType.Remove:
@@ -67,8 +91,7 @@ namespace MapMarkers.Net
                     break;
                 case SyncMessageType.UpdatePos:
                     if (!AllowEdit(marker, whoAmI)) { DisallowEditFor(marker, whoAmI); return; }
-                    marker.Position.X = reader.ReadInt32();
-                    marker.Position.Y = reader.ReadInt32();
+                    marker.Position = new Point(reader.ReadInt32(), reader.ReadInt32());
                     break;
                 case SyncMessageType.UpdateItem:
                     if (!AllowEdit(marker, whoAmI)) { DisallowEditFor(marker, whoAmI); return; }
@@ -120,20 +143,23 @@ namespace MapMarkers.Net
 
         public override void Load(TagCompound tag)
         {
-            if (tag.ContainsKey("markers")) 
+            if (tag.ContainsKey(MarkersNBTKey)) 
             {
-                foreach (TagCompound m in tag.GetList<TagCompound>("markers")) 
+                foreach (TagCompound m in tag.GetList<TagCompound>(MarkersNBTKey)) 
                 {
                     Markers.Add(MapMarker.FromData(m));
                 }
             }
+            if (tag.ContainsKey(MarkerCapNBTKey))
+                MaxMarkersLimit = tag.GetInt(MarkerCapNBTKey);
         }
 
         public override TagCompound Save()
         {
             return new TagCompound()
             {
-                ["markers"] = Markers.Select(m => m.GetData()).ToList()
+                [MarkersNBTKey] = Markers.Select(m => m.GetData()).ToList(),
+                [MarkerCapNBTKey] = MaxMarkersLimit
             };
         }
     }

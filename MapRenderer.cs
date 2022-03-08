@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using MonoMod.Cil;
 using System;
 using Terraria;
 using Terraria.Localization;
@@ -14,7 +15,7 @@ namespace MapMarkers
 
         private MapMarkers MapMarkers;
 
-        internal MapMarker Captured;
+        internal AbstractMarker Captured;
 
         public MapRenderer(MapMarkers mod)
         {
@@ -29,51 +30,50 @@ namespace MapMarkers
             if (MapMarkers.CurrentMarkers != null)
                 if (Captured != null)
                 {
-                    if (Net.MapClient.AllowEdit(Captured) && Main.mouseMiddle && Main.mapFullscreen) Net.MapClient.SetPos(Captured, ScreenToMap(Main.MouseScreen).ToPoint());
+                    Point newPos = ScreenToMap(Main.MouseScreen).ToPoint();
+
+                    if (Captured is MapMarker mm && Net.MapClient.AllowEdit(mm) && Main.mouseMiddle && Main.mapFullscreen)
+                        Net.MapClient.SetPos(mm, newPos);
+                    else if (Captured.CanDrag)
+                        Captured.Position = newPos;
                     else Captured = null;
                 }
         }
 
-        internal void PostDrawFullscreenMap(ref string mouseText)
+        internal void PostDrawMap(ref string mouseText)
         {
             if (MapMarkers.CurrentMarkers == null) return;
 
             Main.spriteBatch.End();
 
-            foreach (MapMarker m in MapMarkers.CurrentMarkers.ToArray())
+            bool hovered = false;
+
+            foreach (AbstractMarker m in MapMarkers.CurrentMarkers.ToArray())
             {
-                Texture2D tex = Main.itemTexture[m.Item.type];
+                if (Main.mapFullscreenScale < m.MinZoom || !m.Active)
+                    continue;
 
-                Vector2 size = tex.Size();
+                Vector2 size = m.Size;
                 Vector2 screenpos = MapToScreen(m.Position.ToVector2()) - size / 2;
-                Rectangle screenRect = new Rectangle((int)screenpos.X, (int)screenpos.Y, tex.Width, tex.Height);
+                Rectangle screenRect = new Rectangle((int)screenpos.X, (int)screenpos.Y, (int)size.X, (int)size.Y);
 
-                if (screenRect.Contains(Main.MouseScreen.ToPoint()))
+                if (!hovered && screenRect.Contains(Main.MouseScreen.ToPoint()))
                 {
-                    MarkerHover(m);
-                    string markerText = m.Name + "\n" + GetCenteredPosition(m.Position);
+                    hovered = true;
+                    string markerText = m.Name;
 
-                    if (m.IsServerSide) 
-                    {
-                        markerText += "\nOwner: " + m.ServerData.Owner;
-                    }
+                    if (m.ShowPos)
+                        markerText += "\n" + GetCenteredPosition(m.Position);
 
-                    if (Net.MapClient.AllowEdit(m))
-                    {
-                        if (Main.keyState.PressingShift())
-                            markerText += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
-                        else
-                            markerText += "\n[Shift] More";
-                    }
+                    MarkerHover(m, ref markerText);
+
                     Main.spriteBatch.Begin();
                     Utils.DrawBorderString(Main.spriteBatch, markerText, screenpos + new Vector2(size.X + 10, 0), Color.White);
                     Main.spriteBatch.End();
-
-
                 }
 
                 Main.spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, null, null);
-                Main.spriteBatch.Draw(tex, screenpos, FixItemColor(m.Item.color));
+                m.Draw(screenpos);
                 Main.spriteBatch.End();
             }
 
@@ -81,13 +81,28 @@ namespace MapMarkers
             MapMarkers.MarkerGui.Draw();
         }
 
-        private void MarkerHover(MapMarker m)
+        private void MarkerHover(AbstractMarker m, ref string text)
         {
-            if (Net.MapClient.AllowEdit(m))
+            m.Hover(ref text);
+
+            if (m is MapMarker mm && Net.MapClient.AllowEdit(mm))
             {
+                if (mm.IsServerSide)
+                {
+                    text += "\nOwner: " + mm.ServerData.Owner;
+                }
+
+                if (Net.MapClient.AllowEdit(mm))
+                {
+                    if (Main.keyState.PressingShift())
+                        text += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
+                    else
+                        text += "\n[Shift] More";
+                }
+
                 if (Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
                 {
-                    if (m.IsServerSide) Net.MapClient.SetGlobal(m, false);
+                    if (mm.IsServerSide) Net.MapClient.SetGlobal(mm, false);
                     MapMarkers.CurrentMarkers.Remove(m);
                 }
                 else if (MiddlePressed)
@@ -97,8 +112,13 @@ namespace MapMarkers
                 else if (RightPressed)
                 {
                     Main.mapFullscreen = false;
-                    MapMarkers.MarkerGui.SetMarker(m);
+                    MapMarkers.MarkerGui.SetMarker(mm);
                 }
+            }
+
+            else if (MiddlePressed && m.CanDrag)
+            {
+                Captured = m;
             }
         }
 

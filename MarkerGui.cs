@@ -159,6 +159,7 @@ namespace MapMarkers
             Global.BackgroundColor = Marker.IsServerSide ? Active : Inactive;
             Global.OnClick += (ev, ui) =>
             {
+                Marker.BrandNew = false;
                 Net.MapClient.SetGlobal(Marker, !Marker.IsServerSide);
                 InitNetUI();
             };

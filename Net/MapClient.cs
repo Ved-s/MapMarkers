@@ -46,7 +46,7 @@ namespace MapMarkers.Net
 
             if (type != SyncMessageType.Add)
             {
-                marker = Mod.CurrentMarkers.FirstOrDefault(m => m.ServerData != null && m.ServerData.Id == id);
+                marker = Mod.CurrentMarkers.FirstOrDefault(m => m is MapMarker mm && mm.ServerData != null && mm.ServerData.Id == id) as MapMarker;
                 if (marker == null) return;
             }
 
@@ -59,17 +59,31 @@ namespace MapMarkers.Net
                     Mod.CurrentMarkers.Add(marker);
                     break;
                 case SyncMessageType.Remove:
-                    Mod.CurrentMarkers.Remove(marker);
-                    if (Mod.MarkerGui.Marker == marker)
-                        Mod.MarkerGui.Marker = null;
+
+                    if (marker.ServerData?.Owner == Main.LocalPlayer.name)
+                    {
+                        marker.ServerData = null;
+                        if (Mod.MarkerGui.Marker == marker)
+                        {
+                            Mod.MarkerGui.UpdateData();
+                        }
+                    }
+                    else
+                    {
+                        Mod.CurrentMarkers.Remove(marker);
+                        if (Mod.MarkerGui.Marker == marker)
+                        {
+                            Main.blockInput = false;
+                            Mod.MarkerGui.Marker = null;
+                        }
+                    }
                     break;
                 case SyncMessageType.UpdateName:
                     marker.Name = reader.ReadString();
                     updateUI = true;
                     break;
                 case SyncMessageType.UpdatePos:
-                    marker.Position.X = reader.ReadInt32();
-                    marker.Position.Y = reader.ReadInt32();
+                    marker.Position = new Point(reader.ReadInt32(), reader.ReadInt32());
                     updateUI = true;
                     break;
                 case SyncMessageType.UpdateItem:
