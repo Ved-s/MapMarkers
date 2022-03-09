@@ -29,11 +29,8 @@ namespace MapMarkers
             }
         }
 
-        static List<MapPlayer> Instances = new List<MapPlayer>();
-
         public MapPlayer() 
         {
-            Instances.Add(this);
         }
 
         public override TagCompound Save()

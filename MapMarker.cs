@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using Terraria;
+using Terraria.ID;
 using Terraria.Localization;
 using Terraria.Map;
 using Terraria.ModLoader;
@@ -43,6 +44,12 @@ namespace MapMarkers
 
         public override void Draw(Vector2 screenPos)
         {
+            if (Main.tile[Position.X, Position.Y].type != TileID.Statues)
+            {
+                ModContent.GetInstance<MapMarkers>().CurrentMarkers.Remove(this);
+                return;
+            }
+
             screenPos.Y -= 8;
             Main.spriteBatch.Draw(Main.itemTexture[Item], screenPos, Color.White);
         }
