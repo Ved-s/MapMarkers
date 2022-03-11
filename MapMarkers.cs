@@ -84,6 +84,8 @@ namespace MapMarkers
                 for (int y = 0; y < Main.maxTilesY; y++)
                 {
                     Tile t = Main.tile[x, y];
+                    if (t == null) 
+                        continue;
                     if (IsStatueTile(t))
                     {
                         int item = StatueTileToItem(t);
@@ -106,6 +108,8 @@ namespace MapMarkers
             {
                 Chest chest = Main.chest[i];
                 if (chest is null) continue;
+                if (Main.tile[chest.x, chest.y] == null) 
+                    continue;
 
                 if (Chest.isLocked(chest.x, chest.y))
                 {
