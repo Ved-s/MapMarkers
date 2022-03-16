@@ -102,8 +102,8 @@ namespace MapMarkers
                 i.SetDefaults(ItemID.TrifoldMap);
                 MapMarker m = new MapMarker("New marker", Point.Zero, i);
 
-                if (Main.mapFullscreen)
-                    m.Position = MapRenderer.ScreenToMap(Main.MouseScreen).ToPoint();
+                if (MapHelper.IsFullscreenMap)
+                    m.Position = MapHelper.ScreenToMap(Main.MouseScreen).ToPoint();
                 else m.Position = (Main.LocalPlayer.position / new Vector2(16)).ToPoint();
 
                 Main.mapFullscreen = false;

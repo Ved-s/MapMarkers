@@ -71,7 +71,7 @@ namespace MapMarkers.Net
                         if (m.ServerData.Owner == Main.player[whoAmI].name)
                             playerMarkerCount++;
 
-                    if (playerMarkerCount > MaxMarkersLimit)
+                    if (playerMarkerCount >= MaxMarkersLimit)
                     {
                         ModPacket p = CreateSyncPacket(marker, SyncMessageType.Remove);
                         p.Send(whoAmI);

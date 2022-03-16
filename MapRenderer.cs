@@ -30,7 +30,7 @@ namespace MapMarkers
             if (MapMarkers.CurrentMarkers != null)
                 if (Captured != null)
                 {
-                    Point newPos = ScreenToMap(Main.MouseScreen).ToPoint();
+                    Point newPos = MapHelper.ScreenToMap(Main.MouseScreen).ToPoint();
 
                     if (Captured is MapMarker mm && Net.MapClient.AllowEdit(mm) && Main.mouseMiddle && Main.mapFullscreen)
                         Net.MapClient.SetPos(mm, newPos);
@@ -54,8 +54,11 @@ namespace MapMarkers
                     continue;
 
                 Vector2 size = m.Size;
-                Vector2 screenpos = MapToScreen(m.Position.ToVector2()) - size / 2;
+                Vector2 screenpos = MapHelper.MapToScreen(m.Position.ToVector2()) - size / 2;
                 Rectangle screenRect = new Rectangle((int)screenpos.X, (int)screenpos.Y, (int)size.X, (int)size.Y);
+
+                if (!MapHelper.IsVisibleWithoutClipping(screenRect))
+                    continue;
 
                 if (!hovered && screenRect.Contains(Main.MouseScreen.ToPoint()))
                 {
@@ -64,12 +67,16 @@ namespace MapMarkers
 
                     if (m.ShowPos)
                         markerText += "\n" + GetCenteredPosition(m.Position);
+                    if (MapHelper.IsFullscreenMap)
+                        MarkerHover(m, ref markerText);
 
-                    MarkerHover(m, ref markerText);
-
-                    Main.spriteBatch.Begin();
-                    Utils.DrawBorderString(Main.spriteBatch, markerText, screenpos + new Vector2(size.X + 10, 0), Color.White);
-                    Main.spriteBatch.End();
+                    if (!MapHelper.IsMiniMap)
+                    {
+                        Main.spriteBatch.Begin();
+                        Utils.DrawBorderString(Main.spriteBatch, markerText, screenpos + new Vector2(size.X + 10, 0), Color.White);
+                        Main.spriteBatch.End();
+                    }
+                    else mouseText = markerText;
                 }
 
                 Main.spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, null, null);
@@ -154,36 +161,5 @@ namespace MapMarkers
 
             return xs + "\n" + ys;
         }
-
-        public static Rectangle MapToScreen(Rectangle rect)
-        {
-            Vector2 tl = MapToScreen(rect.TopLeft());
-            Vector2 br = MapToScreen(rect.BottomRight());
-
-            Vector2 diff = br - tl;
-
-            return new Rectangle((int)tl.X, (int)tl.Y, (int)diff.X, (int)diff.Y);
-        }
-        public static Vector2 MapToScreen(Vector2 vec)
-        {
-            Vector2 screen = new Vector2(Main.screenWidth, Main.screenHeight);
-
-            vec -= Main.mapFullscreenPos;
-            vec /= 16 / Main.mapFullscreenScale;
-            vec *= 16;
-            vec += screen / 2;
-
-            return vec;
-        }
-        public static Vector2 ScreenToMap(Vector2 vec)
-        {
-            Vector2 screen = new Vector2(Main.screenWidth, Main.screenHeight);
-
-            vec -= screen / 2;
-            vec /= 16;
-            vec *= 16 / Main.mapFullscreenScale;
-            return Main.mapFullscreenPos + vec;
-        }
-
     }
 }

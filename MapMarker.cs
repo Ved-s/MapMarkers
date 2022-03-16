@@ -51,7 +51,7 @@ namespace MapMarkers
             }
 
             screenPos.Y -= 8;
-            Main.spriteBatch.Draw(Main.itemTexture[Item], screenPos, Color.White);
+            Main.spriteBatch.Draw(Main.itemTexture[Item], screenPos, Color.White * MapHelper.MapAlpha);
         }
     }
     public class LockedChestMarker : AbstractMarker
@@ -74,10 +74,10 @@ namespace MapMarkers
                 Chest ch = Main.chest[Chest];
 
                 int type = Main.Map[ch.x, ch.y].Type;
-                int chest1lookup = MapHelper.tileLookup[21];
-                int chest1count = MapHelper.tileOptionCounts[21];
-                int chest2lookup = MapHelper.tileLookup[467];
-                int chest2count = MapHelper.tileOptionCounts[467];
+                int chest1lookup = Terraria.Map.MapHelper.tileLookup[21];
+                int chest1count = Terraria.Map.MapHelper.tileOptionCounts[21];
+                int chest2lookup = Terraria.Map.MapHelper.tileLookup[467];
+                int chest2count = Terraria.Map.MapHelper.tileOptionCounts[467];
 
                 Tile tile = Main.tile[ch.x, ch.y];
                 if (tile is null) return "";
@@ -139,7 +139,7 @@ namespace MapMarkers
                     Vector2 pos = screenPos + new Vector2(x * 16, y * 16);
                     Rectangle source = new Rectangle(t.frameX, t.frameY, 16, 16);
 
-                    Main.spriteBatch.Draw(Main.tileTexture[t.type], pos, source, Color.White);
+                    Main.spriteBatch.Draw(Main.tileTexture[t.type], pos, source, Color.White * MapHelper.MapAlpha);
                 }
         }
     }
@@ -153,7 +153,7 @@ namespace MapMarkers
 
         public override void Draw(Vector2 screenPos)
         {
-            Main.spriteBatch.Draw(Main.itemTexture[Terraria.ID.ItemID.Acorn], screenPos, Color.White);
+            Main.spriteBatch.Draw(Main.itemTexture[Terraria.ID.ItemID.Acorn], screenPos, Color.White * MapHelper.MapAlpha);
         }
     }
 
@@ -243,7 +243,7 @@ namespace MapMarkers
 
         public override void Draw(Vector2 screenPos)
         {
-            Main.spriteBatch.Draw(Main.itemTexture[Item.type], screenPos, Color.White);
+            Main.spriteBatch.Draw(Main.itemTexture[Item.type], screenPos, Color.White * MapHelper.MapAlpha);
         }
     }
     public class ServerMarkerData

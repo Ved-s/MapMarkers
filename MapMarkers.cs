@@ -30,13 +30,13 @@ namespace MapMarkers
             Renderer = new MapRenderer(this);
 
             IL.Terraria.Main.DoUpdate += CanPauseGameIL;
-            //IL.Terraria.Main.DrawMap += DrawMapIL;
+            IL.Terraria.Main.DrawMap += DrawMapIL;
         }
 
         public override void Unload()
         {
             IL.Terraria.Main.DoUpdate -= CanPauseGameIL;
-            //IL.Terraria.Main.DrawMap -= DrawMapIL;
+            IL.Terraria.Main.DrawMap -= DrawMapIL;
         }
 
 
@@ -46,10 +46,10 @@ namespace MapMarkers
             else Net.MapClient.HandlePacket(reader);
         }
 
-        public override void PostDrawFullscreenMap(ref string mouseText)
-        {
-            Renderer.PostDrawMap(ref mouseText);
-        }
+        //public override void PostDrawFullscreenMap(ref string mouseText)
+        //{
+        //    Renderer.PostDrawMap(ref mouseText);
+        //}
 
         public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
         {
@@ -186,46 +186,60 @@ namespace MapMarkers
                 }
         }
 
-        // Possible minimap draw
-        //private void DrawMapIL(ILContext il)
-        //{
-        //    /*
-        //      IL_322C: call      void Terraria.ModLoader.ModHooks::PostDrawFullscreenMap(string&)
-        //      IL_3231: ldc.i4.0
-        //      IL_3232: call      valuetype [Microsoft.Xna.Framework]Microsoft.Xna.Framework.Vector2 Terraria.Main::DrawThickCursor(bool)
-        //      IL_3237: ldc.i4.0
-        //      IL_3238: call      void Terraria.Main::DrawCursor(valuetype [Microsoft.Xna.Framework]Microsoft.Xna.Framework.Vector2, bool)
-        //      
-        //      IL_323D: ldloc.0
-        //      IL_323E: ldstr     ""
-        //     */
-        //
-        //    ILCursor c = new ILCursor(il);
-        //
-        //    int mouseText = -1;
-        //
-        //    if (!c.TryGotoNext(
-        //        x=>x.MatchCall("Terraria.ModLoader.ModHooks", "PostDrawFullscreenMap"),
-        //        x=>x.MatchLdcI4(0),
-        //        x=>x.MatchCall<Main>("DrawThickCursor"),
-        //        x=>x.MatchLdcI4(0),
-        //        x=>x.MatchCall<Main>("DrawCursor"),
-        //
-        //        x=>x.MatchLdloc(out mouseText),
-        //        x=>x.MatchLdstr("")
-        //        )) 
-        //    {
-        //        Logger.WarnFormat("Patch error: {0}", il.Method.FullName);
-        //        return;
-        //    }
-        //
-        //    c.Index += 6;
-        //
-        //    c.Emit(OpCodes.Pop);
-        //    c.Emit(OpCodes.Ldloca, mouseText);
-        //    c.Emit<MapMarkers>(OpCodes.Call, nameof(PostDrawMap));
-        //    c.Emit(OpCodes.Ldloc, mouseText);
-        //}
+        private void DrawMapIL(ILContext il)
+        {
+            ILCursor c = new ILCursor(il);
+
+            /* Get mouseText variable index
+	          IL_324B: ldloc.0
+	          IL_324C: ldc.i4.0
+	          IL_324D: ldc.i4.0
+	          IL_324E: ldc.i4.m1
+	          IL_324F: ldc.i4.m1
+	          IL_3250: ldc.i4.m1
+	          IL_3251: ldc.i4.m1
+	          IL_3252: call      instance void Terraria.Main::MouseText(string, int32, uint8, int32, int32, int32, int32)
+             */
+
+            int mouseText = -1;
+
+            if (!c.TryGotoNext(
+                x=>x.MatchLdloc(out mouseText),
+                x=>x.MatchLdcI4(out _),
+                x=>x.MatchLdcI4(out _),
+                x=>x.MatchLdcI4(out _),
+                x=>x.MatchLdcI4(out _),
+                x=>x.MatchLdcI4(out _),
+                x=>x.MatchLdcI4(out _),
+                x=>x.MatchCall<Main>("MouseText")
+                )) 
+            {
+                Logger.WarnFormat("Patch error: {0} (1)", il.Method.FullName);
+                return;
+            }
+
+            /* Patch
+	          IL_11A4: ldsfld    bool Terraria.Main::mapFullscreen
+	          IL_11A9: brtrue    IL_2348
+             
+	          IL_11AE: ldsfld    int32 Terraria.Main::mapStyle
+	          IL_11B3: ldc.i4.2
+             */
+
+            if (!c.TryGotoPrev(
+                x => x.MatchLdsfld<Main>("mapFullscreen"),
+                x => x.MatchBrtrue(out _),
+                x => x.MatchLdsfld<Main>("mapStyle"),
+                x => x.MatchLdcI4(2)
+                ))
+            {
+                Logger.WarnFormat("Patch error: {0} (2)", il.Method.FullName);
+                return;
+            }
+
+            c.Emit(OpCodes.Ldloca, mouseText);
+            c.Emit<MapMarkers>(OpCodes.Call, nameof(PostDrawMap));
+        }
 
         private void CanPauseGameIL(ILContext il)
         {
@@ -279,8 +293,7 @@ namespace MapMarkers
 
         private static void PostDrawMap(ref string text)
         {
-            if (!Main.mapFullscreen)
-                ModContent.GetInstance<MapMarkers>().Renderer.PostDrawMap(ref text);
+            ModContent.GetInstance<MapMarkers>().Renderer.PostDrawMap(ref text);
         }
 
         private static bool CanPauseGame()
