@@ -1,10 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
@@ -17,7 +12,7 @@ namespace MapMarkers
         public List<AbstractMarker> CurrentMarkers;
         public MarkerGui MarkerGui;
         public MapRenderer MapRenderer => ModContent.GetInstance<MapRenderer>();
-        
+
         public Dictionary<int, Dictionary<int, List<AbstractMarker>>> AllMarkers = new();
 
         public override void Load()
@@ -43,8 +38,13 @@ namespace MapMarkers
 
             //CurrentMarkers.Add(new SpawnMarker());
 
-            if (conf.AddChestMarkers) AddChesMarkers();
-            if (conf.AddStatueMarkers) AddStatueMarkers();
+            if (Main.netMode == NetmodeID.SinglePlayer)
+            {
+                if (conf.AddChestMarkers)
+                    AddChesMarkers();
+                if (conf.AddStatueMarkers)
+                    AddStatueMarkers();
+            }
         }
 
         internal void AddStatueMarkers()
@@ -90,7 +90,6 @@ namespace MapMarkers
                     chests++;
                 }
             }
-
 #if DEBUG
             Mod.Logger.InfoFormat("Added {0} locked chest markers", chests);
 #endif
@@ -120,43 +119,35 @@ namespace MapMarkers
         }
         private static int StatueTileToItem(Tile t)
         {
-            int id = t.TileFrameX / 36;
-            id += t.TileFrameY / 54 * 55;
-            if (id == 0)
+            int x = t.TileFrameX / 36;
+            int y = (t.TileFrameY / 54) % 3;
+            int id = x + y * 55;
+
+            if (id >= 51 && id <= 62)
+                return 3651 + id - 51;
+
+            if (id >= 63 && id <= 75)
+                return 3708 + id - 63;
+
+            switch (id)
             {
-                return -1; // PinkVase
+                case 0: return 360;
+                case 1: return 52;
+                case 43: return 1152;
+                case 44: return 1153;
+                case 45: return 1154;
+                case 46: return -1; // BlueDungeonVase 1408;
+                case 47: return -1; // GreenDungeonVase 1409;
+                case 48: return -1; // PinkDungeonVase 1410;
+                case 49: return -1; // ObsidianVase 1462;
+                case 50: return 2672;
+                case 76: return 4397;
+                case 77: return 4360;
+                case 78: return 4342;
+                case 79: return 4466;
+                default: return 438 + id - 2;
+
             }
-            else if (id == 1)
-            {
-                return 52;
-            }
-            else switch (id)
-                {
-                    case 43: return 1152;
-                    case 44: return 1153;
-                    case 45: return 1154;
-                    case 46: return -1; // BlueDungeonVase
-                    case 47: return -1; // GreenDungeonVase
-                    case 48: return -1; // PinkDungeonVase
-                    case 49: return -1; // ObsidianVase
-                    case 50: return 2672;
-
-                    case 51:
-                    case 52:
-                    case 53:
-                    case 54:
-                    case 55:
-                    case 56:
-                    case 57:
-                    case 58:
-                    case 59:
-                    case 60:
-                    case 61:
-                    case 62: return 3651 + id - 51;
-
-                    default: return ((id < 63 || id > 75) ? (438 + id - 2) : (3708 + id - 63));
-
-                }
         }
     }
 }

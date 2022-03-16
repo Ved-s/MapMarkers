@@ -17,9 +17,8 @@ namespace MapMarkers
         public static Vector2 MapWorldPos => 
             Main.mapFullscreen ? Main.mapFullscreenPos : Main.LocalPlayer.position / 16;
 
-        public static Rectangle MapScreenRect => 
-            (!Main.mapFullscreen && Main.mapStyle == 1) ? 
-            new(Main.miniMapX, Main.miniMapY, Main.miniMapWidth, Main.miniMapHeight) :
+        public static Rectangle MapScreenRect =>
+            IsMiniMap ? new(Main.miniMapX, Main.miniMapY, Main.miniMapWidth, Main.miniMapHeight) :
                 new(0, 0, Main.screenWidth, Main.screenHeight);
 
         public static float MapAlpha => IsOverlayMap ? Main.mapOverlayAlpha : 1f;
@@ -27,7 +26,6 @@ namespace MapMarkers
         public static bool IsFullscreenMap => Main.mapFullscreen;
         public static bool IsMiniMap => !Main.mapFullscreen && Main.mapStyle == 1;
         public static bool IsOverlayMap => !Main.mapFullscreen && Main.mapStyle == 2;
-
 
         public static Rectangle MapToScreen(Rectangle rect)
         {
