@@ -31,7 +31,7 @@ namespace MapMarkers.Net
                         Guid id = new Guid(guid);
                         MapMarker m = MapMarker.Read(reader, id);
 
-                        int index = MapSystem.CurrentMarkers.FindIndex(m => m.ServerData?.Id == id);
+                        int index = MapSystem.CurrentMarkers.FindIndex(m => m is MapMarker mm && mm.ServerData?.Id == id);
                         if (index != -1) MapSystem.CurrentMarkers.RemoveAt(index);
 
                         MapSystem.CurrentMarkers.Add(m);
@@ -51,7 +51,7 @@ namespace MapMarkers.Net
 
             if (type != SyncMessageType.Add)
             {
-                marker = MapSystem.CurrentMarkers.FirstOrDefault(m => m.ServerData != null && m.ServerData.Id == id);
+                marker = MapSystem.CurrentMarkers.FirstOrDefault(m => m is MapMarker mm && mm.ServerData != null && mm.ServerData.Id == id) as MapMarker;
                 if (marker == null) return;
             }
 
@@ -64,17 +64,30 @@ namespace MapMarkers.Net
                     MapSystem.CurrentMarkers.Add(marker);
                     break;
                 case SyncMessageType.Remove:
-                    MapSystem.CurrentMarkers.Remove(marker);
-                    if (MapSystem.MarkerGui.Marker == marker)
-                        MapSystem.MarkerGui.Marker = null;
+                    if (marker.ServerData?.Owner == Main.LocalPlayer.name)
+                    {
+                        marker.ServerData = null;
+                        if (MapSystem.MarkerGui.Marker == marker)
+                        {
+                            MapSystem.MarkerGui.UpdateData();
+                        }
+                    }
+                    else
+                    {
+                        MapSystem.CurrentMarkers.Remove(marker);
+                        if (MapSystem.MarkerGui.Marker == marker)
+                        {
+                            Main.blockInput = false;
+                            MapSystem.MarkerGui.Marker = null;
+                        }
+                    }
                     break;
                 case SyncMessageType.UpdateName:
                     marker.Name = reader.ReadString();
                     updateUI = true;
                     break;
                 case SyncMessageType.UpdatePos:
-                    marker.Position.X = reader.ReadInt32();
-                    marker.Position.Y = reader.ReadInt32();
+                    marker.Position = new(reader.ReadInt32(), reader.ReadInt32());
                     updateUI = true;
                     break;
                 case SyncMessageType.UpdateItem:

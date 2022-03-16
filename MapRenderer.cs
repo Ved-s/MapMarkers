@@ -18,7 +18,7 @@ namespace MapMarkers
 
         private MapSystem MapSystem => ModContent.GetInstance<MapSystem>();
 
-        internal MapMarker Captured;
+        internal AbstractMarker Captured;
 
         internal void Update()
         {
@@ -28,62 +28,84 @@ namespace MapMarkers
             if (MapSystem.CurrentMarkers != null)
                 if (Captured is not null)
                 {
-                    if (Net.MapClient.AllowEdit(Captured) && Main.mouseMiddle && Main.mapFullscreen) Net.MapClient.SetPos(Captured, ScreenToMap(Main.MouseScreen).ToPoint());
+                    Point newPos = MapHelper.ScreenToMap(Main.MouseScreen).ToPoint();
+
+                    if (Captured is MapMarker mm && Net.MapClient.AllowEdit(mm) && Main.mouseMiddle && Main.mapFullscreen)
+                        Net.MapClient.SetPos(mm, newPos);
+                    else if (Captured.CanDrag)
+                        Captured.Position = newPos;
                     else Captured = null;
                 }
-
         }
 
         public override void Draw(ref MapOverlayDrawContext context, ref string text)
         {
             if (MapSystem.CurrentMarkers is null) return;
 
-            foreach (MapMarker m in MapSystem.CurrentMarkers.ToArray())
+            bool hovered = false;
+
+            Vector2 textPos = default;
+            string markerText = "";
+
+            foreach (AbstractMarker m in MapSystem.CurrentMarkers.ToArray())
             {
-                Asset<Texture2D> asset = TextureAssets.Item[m.Item.type];
+                if (MapHelper.MapScale < m.MinZoom || !m.Active)
+                    continue;
 
-                if (!asset.IsLoaded) asset = Main.Assets.Request<Texture2D>(asset.Name, AssetRequestMode.ImmediateLoad);
+                Vector2 size = m.Size;
+                Vector2 screenpos = MapHelper.MapToScreen(m.Position.ToVector2()) - size / 2;
+                Rectangle screenRect = new Rectangle((int)screenpos.X, (int)screenpos.Y, (int)size.X, (int)size.Y);
 
-                Texture2D tex = asset.Value;
+                if (!MapHelper.IsVisibleWithoutClipping(screenRect))
+                    continue;
 
-                Vector2 size = tex.Size();
-                Vector2 screenpos = MapToScreen(m.Position.ToVector2()) - size / 2;
+                m.Draw(screenpos);
 
-                MapOverlayDrawContext.DrawResult result = context.Draw(tex, m.Position.ToVector2(), Terraria.UI.Alignment.Center);
-
-                if (result.IsMouseOver)
+                if (!hovered && screenRect.Contains(Main.MouseScreen.ToPoint()))
                 {
-                    MarkerHover(m);
-                    string markerText = m.Name + "\n" + GetCenteredPosition(m.Position);
+                    hovered = true;
+                    markerText = m.Name;
 
-                    if (Main.mapFullscreen)
-                    {
-                        if (m.IsServerSide)
-                        {
-                            markerText += "\nOwner: " + m.ServerData.Owner;
-                        }
+                    if (m.ShowPos)
+                        markerText += "\n" + GetCenteredPosition(m.Position);
 
-                        if (Net.MapClient.AllowEdit(m))
-                        {
-                            if (Main.keyState.PressingShift())
-                                markerText += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
-                            else
-                                markerText += "\n[Shift] More";
-                        }
-                        Utils.DrawBorderString(Main.spriteBatch, markerText, screenpos + new Vector2(size.X + 10, 0), Color.White);
-                    }
-                    else text = markerText;
+                    if (MapHelper.IsFullscreenMap)
+                        MarkerHover(m, ref markerText);
+
+                    textPos = screenpos + new Vector2(size.X + 10, 0);
                 }
+            }
+
+            if (hovered)
+            {
+                if (MapHelper.IsFullscreenMap)
+                {
+                    Utils.DrawBorderString(Main.spriteBatch, markerText, textPos, Color.White);
+                }
+                else text = markerText;
             }
         }
 
-        private void MarkerHover(MapMarker m)
+        private void MarkerHover(AbstractMarker m, ref string markerText)
         {
-            if (Net.MapClient.AllowEdit(m))
+            if (m is MapMarker mm && Net.MapClient.AllowEdit(mm))
             {
+                if (mm.IsServerSide)
+                {
+                    markerText += "\nOwner: " + mm.ServerData.Owner;
+                }
+
+                if (Net.MapClient.AllowEdit(mm))
+                {
+                    if (Main.keyState.PressingShift())
+                        markerText += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
+                    else
+                        markerText += "\n[Shift] More";
+                }
+
                 if (Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
                 {
-                    if (m.IsServerSide) Net.MapClient.SetGlobal(m, false);
+                    if (mm.IsServerSide) Net.MapClient.SetGlobal(mm, false);
                     MapSystem.CurrentMarkers.Remove(m);
                 }
                 else if (MiddlePressed)
@@ -93,8 +115,13 @@ namespace MapMarkers
                 else if (RightPressed)
                 {
                     Main.mapFullscreen = false;
-                    MapSystem.MarkerGui.SetMarker(m);
+                    MapSystem.MarkerGui.SetMarker(mm);
                 }
+            }
+
+            else if (MiddlePressed && m.CanDrag)
+            {
+                Captured = m;
             }
         }
 
@@ -130,36 +157,5 @@ namespace MapMarkers
 
             return xs + "\n" + ys;
         }
-
-        public static Rectangle MapToScreen(Rectangle rect)
-        {
-            Vector2 tl = MapToScreen(rect.TopLeft());
-            Vector2 br = MapToScreen(rect.BottomRight());
-
-            Vector2 diff = br - tl;
-
-            return new Rectangle((int)tl.X, (int)tl.Y, (int)diff.X, (int)diff.Y);
-        }
-        public static Vector2 MapToScreen(Vector2 vec)
-        {
-            Vector2 screen = new Vector2(Main.screenWidth, Main.screenHeight);
-
-            vec -= Main.mapFullscreenPos;
-            vec /= 16 / Main.mapFullscreenScale;
-            vec *= 16;
-            vec += screen / 2;
-
-            return vec;
-        }
-        public static Vector2 ScreenToMap(Vector2 vec)
-        {
-            Vector2 screen = new Vector2(Main.screenWidth, Main.screenHeight);
-
-            vec -= screen / 2;
-            vec /= 16;
-            vec *= 16 / Main.mapFullscreenScale;
-            return Main.mapFullscreenPos + vec;
-        }
-
     }
 }

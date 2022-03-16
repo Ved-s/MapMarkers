@@ -16,7 +16,7 @@ namespace MapMarkers
 
         public ModKeybind CreateMarker;
 
-        private Dictionary<int, List<MapMarker>> MyMarkers
+        private Dictionary<int, List<AbstractMarker>> MyMarkers
         {
             get
             {
@@ -25,7 +25,7 @@ namespace MapMarkers
                 if (MapSystem.AllMarkers.ContainsKey(id))
                     return MapSystem.AllMarkers[id];
 
-                Dictionary<int, List<MapMarker>> markers = new Dictionary<int, List<MapMarker>>();
+                Dictionary<int, List<AbstractMarker>> markers = new();
                 MapSystem.AllMarkers.Add(id, markers);
                 return markers;
             }
@@ -39,10 +39,10 @@ namespace MapMarkers
 
         public override void SaveData(TagCompound tag)
         {
-            foreach (KeyValuePair<int, List<MapMarker>> world in MyMarkers)
+            foreach (KeyValuePair<int, List<AbstractMarker>> world in MyMarkers)
             {
                 string key = $"markers_{world.Key}";
-                List<TagCompound> list = world.Value.Select(x => x.GetData()).ToList();
+                List<TagCompound> list = world.Value.Where(x => x is MapMarker).Select(x => (x as MapMarker).GetData()).ToList();
                 tag[key] = list;
 
                 //Mod.Logger.DebugFormat("Saved {0} markers into {1}", list.Count, key);
@@ -52,7 +52,7 @@ namespace MapMarkers
 
         public override void LoadData(TagCompound tag)
         {
-            Dictionary<int, List<MapMarker>> markers = MyMarkers;
+            Dictionary<int, List<AbstractMarker>> markers = MyMarkers;
             markers.Clear();
 
             //Mod.Logger.DebugFormat("[{0}] Found {1} tags", Player.name, tag.Count);
@@ -64,7 +64,7 @@ namespace MapMarkers
                 if (v.Key.StartsWith("markers_"))
                 {
                     int wid = int.Parse(v.Key.Substring(8));
-                    markers.Add(wid, new List<MapMarker>());
+                    markers.Add(wid, new List<AbstractMarker>());
 
                     foreach (TagCompound d in (IList<TagCompound>)v.Value)
                         markers[wid].Add(MapMarker.FromData(d));
@@ -77,15 +77,17 @@ namespace MapMarkers
         {
             base.OnEnterWorld(player);
             if (Main.dedServ) return;
-            Dictionary<int, List<MapMarker>> markers = MyMarkers;
+            Dictionary<int, List<AbstractMarker>> markers = MyMarkers;
 
             if (!markers.ContainsKey(Main.worldID))
-                markers.Add(Main.worldID, new List<MapMarker>());
+                markers.Add(Main.worldID, new List<AbstractMarker>());
 
             MapSystem.CurrentMarkers = markers[Main.worldID];
 
             //Mod.Logger.DebugFormat("Entered world {0}", Main.worldID);
             Net.MapClient.RequestMarkers();
+
+            MapSystem.AddSpecialMarkers();
         }
 
         public override void PostUpdate()
@@ -99,8 +101,8 @@ namespace MapMarkers
                 i.SetDefaults(ItemID.TrifoldMap);
                 MapMarker m = new MapMarker("New marker", Point.Zero, i);
 
-                if (Main.mapFullscreen)
-                    m.Position = MapRenderer.ScreenToMap(Main.MouseScreen).ToPoint();
+                if (MapHelper.IsFullscreenMap)
+                    m.Position = MapHelper.ScreenToMap(Main.MouseScreen).ToPoint();
                 else m.Position = (Main.LocalPlayer.position / new Vector2(16)).ToPoint();
 
                 Main.mapFullscreen = false;
