@@ -222,7 +222,7 @@ namespace MapMarkers
             m.ServerData = new ServerMarkerData();
             m.ServerData.Id = id;
             m.ServerData.Owner = reader.ReadString();
-            m.ServerData.PublicEdit = reader.ReadBoolean();
+            m.ServerData.PublicPerms = (MarkerPerms)reader.ReadInt32();
 
             return m;
         }
@@ -233,7 +233,7 @@ namespace MapMarkers
             writer.Write(Position.Y);
             writer.Write(Item.type);
             writer.Write(ServerData.Owner);
-            writer.Write(ServerData.PublicEdit);
+            writer.Write((int)ServerData.PublicPerms);
         }
 
         public static MapMarker FromData(TagCompound data)
@@ -278,29 +278,51 @@ namespace MapMarkers
     }
     public class ServerMarkerData
     {
+        private const string OwnerDataKey = "owner";
+        private const string PubEditDataKey = "edit";
+        private const string PubPermDataKey = "perms";
+        private const string IdDataKey = "id";
+
         public string Owner;
-        public bool PublicEdit;
+        public MarkerPerms PublicPerms = MarkerPerms.None;
         public Guid Id;
 
         public TagCompound GetData()
         {
             TagCompound tag = new TagCompound();
-            tag["owner"] = Owner;
-            tag["edit"] = PublicEdit;
-            tag["id"] = Id.ToString();
+            tag[OwnerDataKey] = Owner;
+            tag[PubPermDataKey] = (int)PublicPerms;
+            tag[IdDataKey] = Id.ToString();
             return tag;
         }
 
         public static ServerMarkerData FromData(TagCompound data)
         {
             ServerMarkerData m = new ServerMarkerData();
-            data.TryLoad("owner", ref m.Owner);
-            data.TryLoad("edit", ref m.PublicEdit);
+            data.TryLoad(OwnerDataKey, ref m.Owner);
+
+            if (data.ContainsKey(PubEditDataKey) && data.GetBool(PubEditDataKey))
+            {
+                m.PublicPerms = MarkerPerms.Edit;
+            }
+            else if (data.ContainsKey(PubPermDataKey))
+            {
+                m.PublicPerms = (MarkerPerms)data.GetInt(PubPermDataKey);
+            }
+
             string id = null;
-            data.TryLoad("id", ref id);
+            data.TryLoad(IdDataKey, ref id);
             if (id != null) m.Id = Guid.Parse(id);
 
             return m;
         }
+    }
+
+    [Flags]
+    public enum MarkerPerms
+    {
+        None = 0,
+        Edit = 1,
+        Delete = 2
     }
 }

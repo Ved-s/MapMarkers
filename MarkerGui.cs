@@ -21,7 +21,7 @@ namespace MapMarkers
         UIFocusInputTextField Name, Search;
 
         UIAutoScaleTextTextPanel<string> Header;
-        UIAutoScaleTextTextPanel<string> Ok, Cancel, Reload, Global, Edit;
+        UIAutoScaleTextTextPanel<string> Ok, Cancel, Reload, Global, Edit, Delete;
 
         List<Item> Items = new List<Item>();
 
@@ -143,10 +143,9 @@ namespace MapMarkers
 
         private void InitNetUI()
         {
-            if (Global != null)
-                Main.RemoveChild(Global);
-            if (Edit != null)
-                Main.RemoveChild(Edit);
+            if (Global != null) Main.RemoveChild(Global);
+            if (Edit != null) Main.RemoveChild(Edit);
+            if (Delete != null) Main.RemoveChild(Delete);
 
             if ((Terraria.Main.netMode == NetmodeID.MultiplayerClient || Net.MapClient.CanMakeGlobal)
                 && Marker.ServerData != null
@@ -156,7 +155,7 @@ namespace MapMarkers
             Global.Top.Set(60, 0);
             Global.Left.Set(20, 0);
             Global.Width.Set(100, 0);
-            Global.Height.Set(30, 0);
+            Global.Height.Set(25, 0);
             Global.BackgroundColor = Marker.IsServerSide ? Active : Inactive;
             Global.OnClick += (ev, ui) =>
             {
@@ -168,18 +167,39 @@ namespace MapMarkers
 
             if (!Marker.IsServerSide) return;
 
+            bool edit = Marker.ServerData.PublicPerms.HasFlag(MarkerPerms.Edit);
             Main.Append(Edit = new UIAutoScaleTextTextPanel<string>("Public edit"));
             Edit.Top.Set(60, 0);
             Edit.Left.Set(130, 0);
             Edit.Width.Set(127, 0);
-            Edit.Height.Set(30, 0);
-            Edit.BackgroundColor = Marker.ServerData.PublicEdit ? Active : Inactive;
+            Edit.Height.Set(25, 0);
+            Edit.BackgroundColor = edit ? Active : Inactive;
             Edit.OnClick += (ev, ui) =>
             {
-                Net.MapClient.SetGlobalEdit(Marker, !Marker.ServerData.PublicEdit);
+                MarkerPerms perms = Marker.ServerData.PublicPerms;
+                perms ^= MarkerPerms.Edit;
+
+                Net.MapClient.SetPublicPerms(Marker, perms);
                 InitNetUI();
             };
-            Hover(Edit, Marker.ServerData.PublicEdit ? ActiveHover : InactiveHover, Marker.ServerData.PublicEdit ? Active : Inactive);
+            Hover(Edit, edit ? ActiveHover : InactiveHover, edit ? Active : Inactive);
+
+            bool delete = Marker.ServerData.PublicPerms.HasFlag(MarkerPerms.Delete);
+            Main.Append(Delete = new UIAutoScaleTextTextPanel<string>("Public delete"));
+            Delete.Top.Set(90, 0);
+            Delete.Left.Set(130, 0);
+            Delete.Width.Set(127, 0);
+            Delete.Height.Set(25, 0);
+            Delete.BackgroundColor = delete ? Active : Inactive;
+            Delete.OnClick += (ev, ui) =>
+            {
+                MarkerPerms perms = Marker.ServerData.PublicPerms;
+                perms ^= MarkerPerms.Delete;
+
+                Net.MapClient.SetPublicPerms(Marker, perms);
+                InitNetUI();
+            };
+            Hover(Delete, delete ? ActiveHover : InactiveHover, delete ? Active : Inactive);
         }
 
         private void Hover(UIPanel e, Color? hovered = null, Color? normal = null)
