@@ -1,27 +1,38 @@
 ﻿using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Terraria;
 
 namespace MapMarkers
 {
     public static class MapHelper
     {
+        internal static Vector2? OverlayMapScreen = null;
+
+        public static Vector2 ScreenCenterWorld => (Main.screenPosition + new Vector2(Main.screenWidth, Main.screenHeight) / 2) / 16;
+
         public static float MapScale =>
                 Main.mapFullscreen ? Main.mapFullscreenScale :
                 Main.mapStyle == 1 ? Main.mapMinimapScale : Main.mapOverlayScale;
 
-        public static Vector2 MapWorldPos => 
-            Main.mapFullscreen ? Main.mapFullscreenPos : Main.LocalPlayer.position / 16;
+        public static Vector2 MapWorldPos =>
+            Main.mapFullscreen ? 
+                Main.mapFullscreenPos :
+            Main.mapStyle == 1 ? 
+                ScreenCenterWorld :
+            OverlayMapScreen.HasValue ? 
+                new Vector2(10) : 
+            ScreenCenterWorld;
 
-        public static Rectangle MapScreenRect =>
-            IsMiniMap ? new Rectangle(Main.miniMapX, Main.miniMapY, Main.miniMapWidth, Main.miniMapHeight) :
-                new Rectangle(0, 0, Main.screenWidth, Main.screenHeight);
+        public static Vector2 MapScreenPos =>
+            (Main.mapFullscreen || !OverlayMapScreen.HasValue) ?
+                new Vector2(Main.screenWidth / 2, Main.screenHeight / 2) :
+            Main.mapStyle == 1 ?
+                new Vector2(Main.miniMapX + Main.miniMapWidth / 2, Main.miniMapY + Main.miniMapHeight / 2) :
+            OverlayMapScreen.Value;
 
-        public static float MapAlpha => IsOverlayMap ? Main.mapOverlayAlpha : 1f;
+        public static float MapAlpha =>
+            Main.mapFullscreen ? 1f :
+            Main.mapStyle == 1 ? Main.mapMinimapAlpha :
+            Main.mapOverlayAlpha;
 
         public static bool IsFullscreenMap => Main.mapFullscreen;
         public static bool IsMiniMap => !Main.mapFullscreen && Main.mapStyle == 1;
@@ -36,36 +47,32 @@ namespace MapMarkers
 
             return new Rectangle((int)tl.X, (int)tl.Y, (int)diff.X, (int)diff.Y);
         }
+
         public static Vector2 MapToScreen(Vector2 vec)
         {
-            Rectangle rect = MapScreenRect;
-
             vec -= MapWorldPos;
             vec /= 16 / MapScale;
             vec *= 16;
-
-            vec += rect.Location.ToVector2() + rect.Size() / 2;
-
-            return vec;
+            return vec + MapScreenPos;
         }
+
         public static Vector2 ScreenToMap(Vector2 vec)
         {
-            Rectangle rect = MapScreenRect;
-
-            vec -= rect.Location.ToVector2() + rect.Size() / 2;
+            vec -= MapScreenPos;
             vec /= 16;
             vec *= 16 / MapScale;
             return MapWorldPos + vec;
         }
 
-        public static bool IsVisibleWithoutClipping(Rectangle screenRect) 
+        public static bool IsVisibleWithoutClipping(Rectangle screenRect)
         {
-            Rectangle mapRect = MapScreenRect;
+            if (IsOverlayMap || Main.mapFullscreen)
+                return true;
 
-            if (mapRect.X > screenRect.X || mapRect.Y > screenRect.Y)
+            if (Main.miniMapX > screenRect.X || Main.miniMapY > screenRect.Y)
                 return false;
 
-            if (mapRect.Right <= screenRect.Right || mapRect.Bottom <= screenRect.Bottom)
+            if ((Main.miniMapX + Main.miniMapWidth) <= screenRect.Right || (Main.miniMapY + Main.miniMapHeight) <= screenRect.Bottom)
                 return false;
 
             return true;

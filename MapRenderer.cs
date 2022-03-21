@@ -42,6 +42,16 @@ namespace MapMarkers
 
         internal void PostDrawMap(ref string mouseText)
         {
+#if DEBUG
+            Point tl = MapHelper.MapToScreen(new Vector2(10)).ToPoint();
+            Point br = MapHelper.MapToScreen(new Vector2(Main.maxTilesX - 11, Main.maxTilesY - 11)).ToPoint();
+
+            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(tl.X, tl.Y, br.X - tl.X, 1), Color.Yellow);
+            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(tl.X, tl.Y, 1, br.Y - tl.Y), Color.Yellow);
+
+            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(tl.X, br.Y, br.X - tl.X, 1), Color.Yellow);
+            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(br.X, tl.Y, 1, br.Y - tl.Y), Color.Yellow);
+#endif
             if (MapMarkers.CurrentMarkers == null) return;
 
             Main.spriteBatch.End();
@@ -50,7 +60,7 @@ namespace MapMarkers
 
             foreach (AbstractMarker m in MapMarkers.CurrentMarkers.ToArray())
             {
-                if (Main.mapFullscreenScale < m.MinZoom || !m.Active)
+                if (MapHelper.MapScale < m.MinZoom || !m.Active)
                     continue;
 
                 Vector2 size = m.Size;

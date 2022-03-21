@@ -42,10 +42,7 @@ namespace MapMarkers
                 string key = $"markers_{world.Key}";
                 List<TagCompound> list = world.Value.Where(m => m is MapMarker mm && !mm.IsServerSide).Select(x => (x as MapMarker).GetData()).ToList();
                 tag[key] = list;
-
-                //mod.Logger.InfoFormat("Saved {0} markers into {1}", list.Count, key);
             }
-            //mod.Logger.InfoFormat("{0} tags total", tag.Count);
             return tag;
         }
 
@@ -54,12 +51,8 @@ namespace MapMarkers
             Dictionary<int, List<AbstractMarker>> markers = MyMarkers;
             markers.Clear();
 
-            //mod.Logger.InfoFormat("[{0}] Found {1} tags", player.name, tag.Count);
-
             foreach (KeyValuePair<string, object> v in tag)
             {
-                //mod.Logger.InfoFormat("Found tag {0}", v.Key);
-
                 if (v.Key.StartsWith("markers_"))
                 {
                     int wid = int.Parse(v.Key.Substring(8));
@@ -67,7 +60,6 @@ namespace MapMarkers
 
                     foreach (TagCompound d in (IList<TagCompound>)v.Value)
                         markers[wid].Add(MapMarker.FromData(d));
-                    //mod.Logger.InfoFormat("Loaded {0} markers for world {1}", markers.Count, wid);
                 }
             }
         }
@@ -83,13 +75,10 @@ namespace MapMarkers
 
             MapMarkers.CurrentMarkers = markers[Main.worldID];
 
-            //mod.Logger.InfoFormat("Entered world {0}", Main.worldID);
             Net.MapClient.RequestMarkers();
 
             MapMarkers.AddSpecialMarkers();
         }
-
-        
 
         public override void PostUpdate()
         {
