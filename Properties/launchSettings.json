@@ -8,6 +8,7 @@
     "TerrariaServer": {
       "commandName": "Executable",
       "executablePath": "$(tMLServerPath)",
+      "commandLineArgs": "-players 2 -world \"C:\\Users\\vedom\\Documents\\My Games\\Terraria\\ModLoader\\Worlds\\Testing_world.wld\"",
       "workingDirectory": "$(TerrariaSteamPath)"
     }
   }

@@ -1,7 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using MonoMod.Cil;
 using System;
 using Terraria;
 using Terraria.Localization;
@@ -32,7 +31,7 @@ namespace MapMarkers
                 {
                     Point newPos = MapHelper.ScreenToMap(Main.MouseScreen).ToPoint();
 
-                    if (Captured is MapMarker mm && Net.MapClient.AllowEdit(mm) && Main.mouseMiddle && Main.mapFullscreen)
+                    if (Captured is MapMarker mm && Net.MapClient.AllowPerm(mm, MarkerPerms.Edit) && Main.mouseMiddle && Main.mapFullscreen)
                         Net.MapClient.SetPos(mm, newPos);
                     else if (Captured.CanDrag)
                         Captured.Position = newPos;
@@ -102,34 +101,54 @@ namespace MapMarkers
         {
             m.Hover(ref text);
 
-            if (m is MapMarker mm && Net.MapClient.AllowEdit(mm))
+            if (m is MapMarker mm)
             {
+                bool edit = Net.MapClient.AllowPerm(mm, MarkerPerms.Edit);
+                bool delete = Net.MapClient.AllowPerm(mm, MarkerPerms.Delete);
+
                 if (mm.IsServerSide)
                 {
                     text += "\nOwner: " + mm.ServerData.Owner;
                 }
 
-                if (Net.MapClient.AllowEdit(mm))
+                if (edit || delete)
                 {
                     if (Main.keyState.PressingShift())
-                        text += "\n[Del] Delete\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
+                    {
+                        if (delete)
+                            text += "\n[Del] Delete";
+
+                        if (edit)
+                            text += "\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
+                    }
                     else
                         text += "\n[Shift] More";
                 }
 
-                if (Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
+                if (delete && Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
                 {
-                    if (mm.IsServerSide) Net.MapClient.SetGlobal(mm, false);
-                    MapMarkers.CurrentMarkers.Remove(m);
+                    Net.MapClient.Delete(mm);
+                    //if (mm.IsServerSide)
+                    //{
+                    //    if (mm.ServerData.Owner == Main.LocalPlayer.name)
+                    //        Net.MapClient.SetGlobal(mm, false);
+                    //    else 
+                    //}
+                    //MapMarkers.CurrentMarkers.Remove(m);
                 }
-                else if (MiddlePressed)
+
+                if (edit)
                 {
-                    Captured = m;
-                }
-                else if (RightPressed)
-                {
-                    Main.mapFullscreen = false;
-                    MapMarkers.MarkerGui.SetMarker(mm);
+                    if (MiddlePressed)
+                    {
+                        Captured = m;
+                    }
+
+                    else if (RightPressed)
+                    {
+                        Main.mapFullscreen = false;
+                        MapMarkers.MarkerGui.SetMarker(mm);
+                    }
                 }
             }
 

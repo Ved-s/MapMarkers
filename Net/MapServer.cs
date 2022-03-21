@@ -86,22 +86,26 @@ namespace MapMarkers.Net
                     Markers.Remove(marker);
                     break;
                 case SyncMessageType.UpdateName:
-                    if (!AllowEdit(marker, whoAmI)) { DisallowEditFor(marker, whoAmI); return; }
+                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Edit)) { DisallowEditFor(marker, whoAmI); return; }
                     marker.Name = reader.ReadString();
                     break;
                 case SyncMessageType.UpdatePos:
-                    if (!AllowEdit(marker, whoAmI)) { DisallowEditFor(marker, whoAmI); return; }
+                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Edit)) { DisallowEditFor(marker, whoAmI); return; }
                     marker.Position = new Point(reader.ReadInt32(), reader.ReadInt32());
                     break;
                 case SyncMessageType.UpdateItem:
-                    if (!AllowEdit(marker, whoAmI)) { DisallowEditFor(marker, whoAmI); return; }
+                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Edit)) { DisallowEditFor(marker, whoAmI); return; }
                     Item item = new Item();
                     item.SetDefaults(reader.ReadInt32());
                     marker.Item = item;
                     break;
-                case SyncMessageType.UpdateEdit:
+                case SyncMessageType.UpdatePerms:
                     if (marker.ServerData.Owner != Main.player[whoAmI].name) return;
-                    marker.ServerData.PublicEdit = reader.ReadBoolean();
+                    marker.ServerData.PublicPerms = (MarkerPerms)reader.ReadInt32();
+                    break;
+                case SyncMessageType.Delete:
+                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Delete)) return;
+                    Markers.Remove(marker);
                     break;
             }
 
@@ -119,7 +123,7 @@ namespace MapMarkers.Net
 
         private void DisallowEditFor(MapMarker m, int whoAmI) 
         {
-            ModPacket packet = CreateSyncPacket(m, SyncMessageType.UpdateEdit);
+            ModPacket packet = CreateSyncPacket(m, SyncMessageType.UpdatePerms);
             packet.Write(false);
             packet.Send(whoAmI);
         }
@@ -132,13 +136,13 @@ namespace MapMarkers.Net
             packet.Write((byte)type);
             return packet;
         }
-        public static bool AllowEdit(MapMarker m, int player)
+        public static bool AllowPerm(MapMarker m, int player, MarkerPerms perm)
         {
             if (m.ServerData == null) return true;
 
             if (m.ServerData.Owner == Main.player[player].name) return true;
 
-            return m.ServerData.PublicEdit;
+            return m.ServerData.PublicPerms.HasFlag(perm);
         }
 
         public override void Load(TagCompound tag)
@@ -177,6 +181,7 @@ namespace MapMarkers.Net
         UpdateName,
         UpdatePos,
         UpdateItem,
-        UpdateEdit,
+        UpdatePerms,
+        Delete
     }
 }

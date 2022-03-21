@@ -91,10 +91,15 @@ namespace MapMarkers.Net
                     item.SetDefaults(reader.ReadInt32());
                     marker.Item = item;
                     break;
-                case SyncMessageType.UpdateEdit:
-                    marker.ServerData.PublicEdit = reader.ReadBoolean();
-                    if (!marker.ServerData.PublicEdit && Mod.MarkerGui.Marker == marker)
-                        Mod.MarkerGui.Marker = null;
+                case SyncMessageType.UpdatePerms:
+                    marker.ServerData.PublicPerms = (MarkerPerms)reader.ReadInt32();
+                    if (!AllowPerm(marker, MarkerPerms.Edit) && Mod.MarkerGui.Marker == marker)
+                        Mod.MarkerGui.SetMarker(null);
+                    break;
+                case SyncMessageType.Delete:
+                    Mod.CurrentMarkers.Remove(marker);
+                    if (Mod.MarkerGui.Marker == marker)
+                        Mod.MarkerGui.SetMarker(null);
                     break;
             }
 
@@ -109,14 +114,15 @@ namespace MapMarkers.Net
             packet.Write((byte)type);
             return packet;
         }
-        public static bool AllowEdit(MapMarker m)
+
+        public static bool AllowPerm(MapMarker m, MarkerPerms perm)
         {
             if (Main.netMode == NetmodeID.SinglePlayer) return true;
             if (m.ServerData == null) return true;
 
             if (m.ServerData.Owner == Main.LocalPlayer.name) return true;
 
-            return m.ServerData.PublicEdit;
+            return m.ServerData.PublicPerms.HasFlag(perm);
         }
 
         public static void RequestMarkers() 
@@ -139,7 +145,7 @@ namespace MapMarkers.Net
                     m.Name = name;
                     break;
                 case NetmodeID.MultiplayerClient:
-                    if (!AllowEdit(m)) return;
+                    if (!AllowPerm(m, MarkerPerms.Edit)) return;
                     m.Name = name;
                     if (!m.IsServerSide) return;
                     ModPacket packet = CreateSyncPacket(m, SyncMessageType.UpdateName);
@@ -157,7 +163,7 @@ namespace MapMarkers.Net
                     m.Item = item;
                     break;
                 case NetmodeID.MultiplayerClient:
-                    if (!AllowEdit(m)) return;
+                    if (!AllowPerm(m, MarkerPerms.Edit)) return;
                     m.Item = item;
                     if (!m.IsServerSide) return;
                     ModPacket packet = CreateSyncPacket(m, SyncMessageType.UpdateItem);
@@ -175,7 +181,7 @@ namespace MapMarkers.Net
                     m.Position = pos;
                     break;
                 case NetmodeID.MultiplayerClient:
-                    if (!AllowEdit(m)) return;
+                    if (!AllowPerm(m, MarkerPerms.Edit)) return;
                     m.Position = pos;
                     if (!m.IsServerSide) return;
                     ModPacket packet = CreateSyncPacket(m, SyncMessageType.UpdatePos);
@@ -197,7 +203,7 @@ namespace MapMarkers.Net
                     {
                         Id = Guid.NewGuid(),
                         Owner = Main.LocalPlayer.name,
-                        PublicEdit = false
+                        PublicPerms = MarkerPerms.None
                     };
 
                     if (Main.netMode == NetmodeID.MultiplayerClient)
@@ -225,19 +231,31 @@ namespace MapMarkers.Net
             }
             
         }
-        public static void SetGlobalEdit(MapMarker m, bool globalEdit)
+        public static void SetPublicPerms(MapMarker m, MarkerPerms perms)
         {
             if (Main.netMode == NetmodeID.MultiplayerClient)
             {
                 if (m.ServerData != null && m.ServerData.Owner != Main.LocalPlayer.name) return;
 
-                m.ServerData.PublicEdit = globalEdit;
+                m.ServerData.PublicPerms = perms;
 
-                ModPacket packet = CreateSyncPacket(m, SyncMessageType.UpdateEdit);
-                packet.Write(globalEdit);
+                ModPacket packet = CreateSyncPacket(m, SyncMessageType.UpdatePerms);
+                packet.Write((int)perms);
                 packet.Send();
             }
-            else m.ServerData.PublicEdit = globalEdit;
+            else m.ServerData.PublicPerms = perms;
+        }
+        public static void Delete(MapMarker m)
+        {
+            if (!AllowPerm(m, MarkerPerms.Delete)) 
+                return;
+
+            if (Main.netMode == NetmodeID.MultiplayerClient && m.IsServerSide)
+            {
+                ModPacket pack = CreateSyncPacket(m, SyncMessageType.Delete);
+                pack.Send();
+            }
+            Mod.CurrentMarkers.Remove(m);
         }
     }
 }
