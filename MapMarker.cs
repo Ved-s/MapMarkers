@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using System;
 using System.IO;
+using System.Text;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.GameContent;
@@ -25,10 +26,19 @@ namespace MapMarkers
         public abstract Vector2 Size { get; }
 
         public virtual bool CanDrag => false;
+        public virtual bool CanTeleport => CanTeleportDefault();
         public virtual bool ShowPos => true;
 
         public abstract void Draw(Vector2 screenPos);
-        public virtual void Hover(ref string text) { }
+        public virtual void Hover(StringBuilder mouseText) { }
+
+        protected bool CanTeleportDefault()
+        {
+            if (!Active)
+                return false;
+
+            return Main.Map[Position.X, Position.Y].Light > 40;
+        }
     }
 
     public class StatueMarker : AbstractMarker
