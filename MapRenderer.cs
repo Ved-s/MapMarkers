@@ -1,7 +1,9 @@
-﻿using Microsoft.Xna.Framework;
+﻿using MapMarkers.Items;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
+using System.Text;
 using Terraria;
 using Terraria.Localization;
 
@@ -11,6 +13,12 @@ namespace MapMarkers
     {
         internal bool MiddlePressed = false;
         internal bool RightPressed = false;
+
+        internal bool StopDrawingAfterHover = false;
+
+        internal static bool PressingCtrl => Main.keyState.IsKeyDown(Keys.LeftControl) || Main.keyState.IsKeyDown(Keys.RightControl);
+
+        private const string CannotTeleport = "[[c/00ff00:Map Markers]] [c/ff0000:Not enough space to teleport]";
 
         private MapMarkers MapMarkers;
 
@@ -55,7 +63,11 @@ namespace MapMarkers
 
             Main.spriteBatch.End();
 
+            StopDrawingAfterHover = false;
             bool hovered = false;
+
+            StringBuilder markerText = new StringBuilder();
+            Vector2? markerTextPos = null;
 
             foreach (AbstractMarker m in MapMarkers.CurrentMarkers.ToArray())
             {
@@ -72,20 +84,33 @@ namespace MapMarkers
                 if (!hovered && screenRect.Contains(Main.MouseScreen.ToPoint()))
                 {
                     hovered = true;
-                    string markerText = m.Name;
+                    markerText.Append(m.Name);
 
                     if (m.ShowPos)
-                        markerText += "\n" + GetCenteredPosition(m.Position);
+                    {
+                        markerText.AppendLine();
+                        markerText.Append(GetCenteredPosition(m.Position));
+                    }
+
                     if (MapHelper.IsFullscreenMap)
-                        MarkerHover(m, ref markerText);
+                        MarkerHover(m, markerText);
+
+                    if (StopDrawingAfterHover)
+                        break;
 
                     if (!MapHelper.IsMiniMap)
                     {
-                        Main.spriteBatch.Begin();
-                        Utils.DrawBorderString(Main.spriteBatch, markerText, screenpos + new Vector2(size.X + 10, 0), Color.White);
+                        markerTextPos = screenpos + new Vector2(size.X + 10, 0);
+                    }
+
+#if DEBUG
+                    if (m.CanTeleport) 
+                    {
+                        Main.spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, null, null);
+                        DrawTPBoundary(m);
                         Main.spriteBatch.End();
                     }
-                    else mouseText = markerText;
+#endif
                 }
 
                 Main.spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, null, null);
@@ -93,13 +118,30 @@ namespace MapMarkers
                 Main.spriteBatch.End();
             }
 
+            if (markerText.Length > 0)
+            {
+                if (!markerTextPos.HasValue)
+                    mouseText = markerTextPos.ToString();
+                else 
+                {
+                    Main.spriteBatch.Begin();
+                    Utils.DrawBorderString(Main.spriteBatch, markerText.ToString(), markerTextPos.Value, Color.White);
+                    Main.spriteBatch.End();
+                }
+            }
+
             Main.spriteBatch.Begin();
             MapMarkers.MarkerGui.Draw();
         }
 
-        private void MarkerHover(AbstractMarker m, ref string text)
+        private void MarkerHover(AbstractMarker m, StringBuilder mouseText)
         {
-            m.Hover(ref text);
+            m.Hover(mouseText);
+
+            bool shift = Main.keyState.PressingShift();
+            bool ctrl = PressingCtrl;
+
+            bool addShiftForMore = false;
 
             if (m is MapMarker mm)
             {
@@ -108,33 +150,35 @@ namespace MapMarkers
 
                 if (mm.IsServerSide)
                 {
-                    text += "\nOwner: " + mm.ServerData.Owner;
+                    mouseText.AppendLine();
+                    mouseText.Append("Owner: ");
+                    mouseText.Append(mm.ServerData.Owner);
                 }
 
                 if (edit || delete)
                 {
-                    if (Main.keyState.PressingShift())
+                    addShiftForMore = true;
+                    if (shift)
                     {
                         if (delete)
-                            text += "\n[Del] Delete";
+                        {
+                            mouseText.AppendLine();
+                            mouseText.Append("[Del] Delete");
+                        }
 
                         if (edit)
-                            text += "\n[Middle Mouse Button] Move\n[Right Mouse Button] Edit";
+                        {
+                            mouseText.AppendLine();
+                            mouseText.Append("[Middle Click] Move");
+                            mouseText.AppendLine();
+                            mouseText.Append("[Right Click] Edit");
+                        }
                     }
-                    else
-                        text += "\n[Shift] More";
                 }
 
                 if (delete && Main.keyState.IsKeyDown(Keys.Delete) && Main.oldKeyState.IsKeyUp(Keys.Delete))
                 {
                     Net.MapClient.Delete(mm);
-                    //if (mm.IsServerSide)
-                    //{
-                    //    if (mm.ServerData.Owner == Main.LocalPlayer.name)
-                    //        Net.MapClient.SetGlobal(mm, false);
-                    //    else 
-                    //}
-                    //MapMarkers.CurrentMarkers.Remove(m);
                 }
 
                 if (edit)
@@ -144,9 +188,10 @@ namespace MapMarkers
                         Captured = m;
                     }
 
-                    else if (RightPressed)
+                    else if (RightPressed && !ctrl)
                     {
                         Main.mapFullscreen = false;
+                        StopDrawingAfterHover = true;
                         MapMarkers.MarkerGui.SetMarker(mm);
                     }
                 }
@@ -155,6 +200,39 @@ namespace MapMarkers
             else if (MiddlePressed && m.CanDrag)
             {
                 Captured = m;
+            }
+
+            if (m.CanTeleport && MapPlayer.LocalPlayerHasTPPotion && !MapPlayer.LocalPlayerHasTPDebuff) 
+            {
+                addShiftForMore = true;
+
+                if (shift)
+                {
+                    mouseText.AppendLine();
+                    mouseText.Append("[Ctrl+Right Click] Teleport");
+                }
+
+                if (RightPressed && ctrl) 
+                {
+                    Vector2? pos = TryGetTeleportPos(m);
+
+                    if (pos.HasValue)
+                    {
+                        MarkerTPPotion.UsedOnMarker(m, pos.Value);
+                    }
+                    else 
+                    {
+                        Main.NewText(CannotTeleport);
+                    }
+                    Main.mapFullscreen = false;
+                    StopDrawingAfterHover = true;
+                }
+            }
+
+            if (!shift && addShiftForMore)
+            {
+                mouseText.AppendLine();
+                mouseText.Append("[Shift] More");
             }
         }
 
@@ -189,6 +267,61 @@ namespace MapMarkers
             ys = ((depth != 0) ? Language.GetTextValue("GameUI.Depth", depth) : Language.GetTextValue("GameUI.DepthLevel")) + " " + ys;
 
             return xs + "\n" + ys;
+        }
+
+        private static void DrawTPBoundary(AbstractMarker m) 
+        {
+            Vector2 tpTarget = (m.Size / 2) + (m.Position.ToVector2() * 16) - (Main.LocalPlayer.Size / 2);
+
+            Vector2 tpRadius = Main.LocalPlayer.Size + m.Size;
+
+            Vector2 start = (tpTarget - tpRadius) / 16;
+            Vector2 end = MapHelper.MapToScreen(tpRadius / 8 + start);
+            start = MapHelper.MapToScreen(start);
+
+            Main.spriteBatch.Draw(Main.magicPixel,
+                new Rectangle((int)start.X, (int)start.Y, (int)(end.X - start.X), (int)(end.Y - start.Y)),
+                Color.Yellow * 0.3f
+                );
+        }
+
+        public static Vector2? TryGetTeleportPos(AbstractMarker m)
+        {
+            Player local = Main.LocalPlayer;
+
+            Vector2 tpTarget = (m.Size / 2) + (m.Position.ToVector2() * 16) - (local.Size / 2);
+
+            Vector2 tpRadius = local.Size + m.Size;
+
+            Vector2 start = tpTarget - tpRadius;
+            Vector2 area = tpRadius * 2 - local.Size;
+
+            Vector2 closestPos = new Vector2();
+            float closestDistSQ = float.MaxValue;
+            bool anyPos = false;
+
+            for (float y = start.Y; y < start.Y + area.Y; y += 8)
+                for (float x = start.X; x < start.X + area.X; x += 8)
+                {
+                    Vector2 pos = new Vector2(x, y);
+                    if (!Collision.SolidCollision(pos, local.width, local.height)) 
+                    {
+                        Vector2 diff = tpTarget - pos;
+
+                        float distSQ = diff.Y * diff.Y + diff.X * diff.X;
+                        if (distSQ < closestDistSQ) 
+                        {
+                            anyPos = true;
+                            closestDistSQ = distSQ;
+                            closestPos = pos;
+                        }
+                    }
+                }
+
+            if (anyPos)
+                return closestPos;
+            return null;
+
         }
     }
 }

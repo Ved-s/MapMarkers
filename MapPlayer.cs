@@ -1,4 +1,6 @@
-﻿using Microsoft.Xna.Framework;
+﻿using MapMarkers.Buffs;
+using MapMarkers.Items;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,6 +15,14 @@ namespace MapMarkers
     class MapPlayer : ModPlayer
     {
         private MapMarkers MapMarkers => mod as MapMarkers;
+
+        public bool IsLocalPlayer => Main.netMode == NetmodeID.SinglePlayer || (Main.netMode == NetmodeID.MultiplayerClient && player.whoAmI == Main.myPlayer);
+
+        public static bool LocalPlayerHasTPDebuff { get; private set; }
+
+        public static bool LocalPlayerHasTPPotion { get; private set; }
+        public static int LocalPlayerTPPotionBank { get; private set; }
+        public static int LocalPlayerTPPotionSlot { get; private set; }
 
         private Dictionary<int, List<AbstractMarker>> MyMarkers 
         {
@@ -29,8 +39,44 @@ namespace MapMarkers
             }
         }
 
-        public MapPlayer() 
+        public override void PreUpdate()
         {
+            if (IsLocalPlayer)
+            {
+                LocalPlayerHasTPPotion = false;
+                CheckForTPPotion(Main.LocalPlayer.inventory, 0);
+                CheckForTPPotion(Main.LocalPlayer.bank?.item, 1);
+                CheckForTPPotion(Main.LocalPlayer.bank2?.item, 2);
+                CheckForTPPotion(Main.LocalPlayer.bank3?.item, 3);
+            }
+        }
+
+        public override void PostUpdateBuffs()
+        {
+            if (IsLocalPlayer)
+            {
+                LocalPlayerHasTPDebuff = player.HasBuff(TPDisability.BuffType);
+            }
+        }
+
+        private static void CheckForTPPotion(Item[] inv, int bank)
+        {
+            if (LocalPlayerHasTPPotion || inv is null) 
+                return;
+
+            int markertppType = MarkerTPPotion.ItemType;
+
+            for (int i = 0; i < inv.Length; i++)
+            {
+                Item item = inv[i];
+                if (item.active && !item.IsAir && item.type == markertppType)
+                {
+                    LocalPlayerTPPotionBank = bank;
+                    LocalPlayerTPPotionSlot = i;
+                    LocalPlayerHasTPPotion = true;
+                    return;
+                }
+            }
         }
 
         public override TagCompound Save()
