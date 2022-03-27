@@ -29,7 +29,7 @@ namespace MapMarkers.Net
                         byte[] guid = reader.ReadBytes(16);
                         Guid id = new Guid(guid);
                         MapMarker m = MapMarker.Read(reader, id);
-                        Mod.CurrentMarkers.Add(m);
+                        Mod.CurrentPlayerWorldData.Markers.Add(m);
                     }
                     break;
             }
@@ -46,7 +46,7 @@ namespace MapMarkers.Net
 
             if (type != SyncMessageType.Add)
             {
-                marker = Mod.CurrentMarkers.FirstOrDefault(m => m is MapMarker mm && mm.ServerData != null && mm.ServerData.Id == id) as MapMarker;
+                marker = Mod.CurrentPlayerWorldData.Markers.FirstOrDefault(m => m is MapMarker mm && mm.IsServerSide && mm.Id == id) as MapMarker;
                 if (marker == null) return;
             }
 
@@ -56,7 +56,7 @@ namespace MapMarkers.Net
             {
                 case SyncMessageType.Add:
                     marker = MapMarker.Read(reader, id);
-                    Mod.CurrentMarkers.Add(marker);
+                    Mod.CurrentPlayerWorldData.Markers.Add(marker);
                     break;
                 case SyncMessageType.Remove:
 
@@ -70,7 +70,7 @@ namespace MapMarkers.Net
                     }
                     else
                     {
-                        Mod.CurrentMarkers.Remove(marker);
+                        Mod.CurrentPlayerWorldData.Markers.Remove(marker);
                         if (Mod.MarkerGui.Marker == marker)
                         {
                             Main.blockInput = false;
@@ -97,7 +97,7 @@ namespace MapMarkers.Net
                         Mod.MarkerGui.SetMarker(null);
                     break;
                 case SyncMessageType.Delete:
-                    Mod.CurrentMarkers.Remove(marker);
+                    Mod.CurrentPlayerWorldData.Markers.Remove(marker);
                     if (Mod.MarkerGui.Marker == marker)
                         Mod.MarkerGui.SetMarker(null);
                     break;
@@ -110,7 +110,7 @@ namespace MapMarkers.Net
         {
             ModPacket packet = Mod.GetPacket();
             packet.Write((byte)PacketMessageType.Sync);
-            packet.Write(m.ServerData.Id.ToByteArray());
+            packet.Write(m.Id.ToByteArray());
             packet.Write((byte)type);
             return packet;
         }
@@ -133,7 +133,7 @@ namespace MapMarkers.Net
                 packet.Write((byte)PacketMessageType.RequestMarkers);
                 packet.Send();
             }
-            else Mod.CurrentMarkers.AddRange(ModContent.GetInstance<MapServer>().Markers);
+            else Mod.CurrentPlayerWorldData.Markers.AddRange(ModContent.GetInstance<MapServer>().Markers);
         }
 
         public static void SetName(MapMarker m, string name)
@@ -201,7 +201,6 @@ namespace MapMarkers.Net
                 {
                     m.ServerData = new ServerMarkerData()
                     {
-                        Id = Guid.NewGuid(),
                         Owner = Main.LocalPlayer.name,
                         PublicPerms = MarkerPerms.None
                     };
@@ -255,7 +254,7 @@ namespace MapMarkers.Net
                 ModPacket pack = CreateSyncPacket(m, SyncMessageType.Delete);
                 pack.Send();
             }
-            Mod.CurrentMarkers.Remove(m);
+            Mod.CurrentPlayerWorldData.Markers.Remove(m);
         }
     }
 }

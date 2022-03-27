@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using System.Text;
 using Terraria;
+using Terraria.GameInput;
 using Terraria.Localization;
 
 namespace MapMarkers
@@ -31,10 +32,10 @@ namespace MapMarkers
 
         internal void Update()
         {
-            MiddlePressed = Main.mouseMiddle && Main.mouseMiddleRelease;
-            RightPressed = Main.mouseRight && Main.mouseRightRelease;
+            MiddlePressed = PlayerInput.MouseInfo.MiddleButton == ButtonState.Pressed && PlayerInput.MouseInfoOld.MiddleButton == ButtonState.Released;
+            RightPressed = PlayerInput.MouseInfo.RightButton == ButtonState.Pressed && PlayerInput.MouseInfoOld.RightButton == ButtonState.Released;
 
-            if (MapMarkers.CurrentMarkers != null)
+            if (MapMarkers.CurrentPlayerWorldData != null)
                 if (Captured != null)
                 {
                     Point newPos = MapHelper.ScreenToMap(Main.MouseScreen).ToPoint();
@@ -59,7 +60,7 @@ namespace MapMarkers
             Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(tl.X, br.Y, br.X - tl.X, 1), Color.Yellow);
             Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(br.X, tl.Y, 1, br.Y - tl.Y), Color.Yellow);
 #endif
-            if (MapMarkers.CurrentMarkers == null) return;
+            if (MapMarkers.CurrentPlayerWorldData == null) return;
 
             Main.spriteBatch.End();
 
@@ -69,7 +70,7 @@ namespace MapMarkers
             StringBuilder markerText = new StringBuilder();
             Vector2? markerTextPos = null;
 
-            foreach (AbstractMarker m in MapMarkers.CurrentMarkers.ToArray())
+            foreach (AbstractMarker m in MapMarkers.CurrentPlayerWorldData.Markers.ToArray())
             {
                 if (MapHelper.MapScale < m.MinZoom || !m.Active)
                     continue;
@@ -78,13 +79,35 @@ namespace MapMarkers
                 Vector2 screenpos = MapHelper.MapToScreen(m.Position.ToVector2()) - size / 2;
                 Rectangle screenRect = new Rectangle((int)screenpos.X, (int)screenpos.Y, (int)size.X, (int)size.Y);
 
-                if (!MapHelper.IsVisibleWithoutClipping(screenRect))
+                bool pinned = MapMarkers.CurrentPlayerWorldData.Pinned.Contains(m.Id);
+
+                if (pinned)
+                {
+                    screenRect.MoveInside(MapHelper.MapScreenClipRect);
+
+                    Rectangle mapPosClipRect = MapHelper.MapScreenClipRect;
+                    mapPosClipRect.Width -= (int)size.X;
+                    mapPosClipRect.Height -= (int)size.Y;
+                    screenpos.MoveInside(mapPosClipRect);
+                }
+
+                else if (!MapHelper.IsVisibleWithoutClipping(screenRect))
                     continue;
 
                 if (!hovered && screenRect.Contains(Main.MouseScreen.ToPoint()))
                 {
                     hovered = true;
                     markerText.Append(m.Name);
+
+#if DEBUG
+                    markerText.AppendLine();
+                    markerText.Append(m.Id.ToString());
+#endif
+                    if (pinned)
+                    {
+                        markerText.AppendLine();
+                        markerText.Append("Pinned");
+                    }
 
                     if (m.ShowPos)
                     {
@@ -121,7 +144,7 @@ namespace MapMarkers
             if (markerText.Length > 0)
             {
                 if (!markerTextPos.HasValue)
-                    mouseText = markerTextPos.ToString();
+                    mouseText = markerText.ToString();
                 else 
                 {
                     Main.spriteBatch.Begin();
@@ -188,7 +211,7 @@ namespace MapMarkers
                         Captured = m;
                     }
 
-                    else if (RightPressed && !ctrl)
+                    else if (RightPressed && !ctrl && !shift)
                     {
                         Main.mapFullscreen = false;
                         StopDrawingAfterHover = true;
@@ -227,6 +250,30 @@ namespace MapMarkers
                     Main.mapFullscreen = false;
                     StopDrawingAfterHover = true;
                 }
+            }
+
+            if (m.CanPin)
+            {
+                addShiftForMore = true;
+                if (shift)
+                {
+                    bool pin = MapMarkers.CurrentPlayerWorldData.Pinned.Contains(m.Id);
+
+                    mouseText.AppendLine();
+                    mouseText.Append("[Shift+Right Click] ");
+
+                    if (pin) mouseText.Append("Unpin");
+                    else mouseText.Append("Pin");
+
+                    if (RightPressed)
+                    {
+                        if (pin)
+                            MapMarkers.CurrentPlayerWorldData.Pinned.Remove(m.Id);
+                        else
+                            MapMarkers.CurrentPlayerWorldData.Pinned.Add(m.Id);
+                    }
+                }
+                
             }
 
             if (!shift && addShiftForMore)

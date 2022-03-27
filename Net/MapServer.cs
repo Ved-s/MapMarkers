@@ -38,7 +38,7 @@ namespace MapMarkers.Net
                     Console.WriteLine($"[Map Markers] Sending {Markers.Count} markers to {Main.player[whoAmI].name}");
                     foreach (MapMarker m in Markers) 
                     {
-                        packet.Write(m.ServerData.Id.ToByteArray());
+                        packet.Write(m.Id.ToByteArray());
                         m.Write(packet);
                     }
                     packet.Send(whoAmI);
@@ -55,7 +55,7 @@ namespace MapMarkers.Net
             long pos = reader.BaseStream.Position;
             bool redirect = true;
 
-            MapMarker marker = Markers.FirstOrDefault(m => m.ServerData.Id == id);
+            MapMarker marker = Markers.FirstOrDefault(m => m.Id == id);
 
 #if DEBUG
             Console.WriteLine(string.Format("[Map Markers] Received message {0}, marker {1}", type, marker?.Name ?? "null"));
@@ -132,7 +132,7 @@ namespace MapMarkers.Net
         {
             ModPacket packet = mod.GetPacket();
             packet.Write((byte)PacketMessageType.Sync);
-            packet.Write(m.ServerData.Id.ToByteArray());
+            packet.Write(m.Id.ToByteArray());
             packet.Write((byte)type);
             return packet;
         }
@@ -147,6 +147,9 @@ namespace MapMarkers.Net
 
         public override void Load(TagCompound tag)
         {
+            Markers.Clear();
+            MaxMarkersLimit = 5;
+
             if (tag.ContainsKey(MarkersNBTKey)) 
             {
                 foreach (TagCompound m in tag.GetList<TagCompound>(MarkersNBTKey)) 

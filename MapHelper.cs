@@ -29,6 +29,10 @@ namespace MapMarkers
                 new Vector2(Main.miniMapX + Main.miniMapWidth / 2, Main.miniMapY + Main.miniMapHeight / 2) :
             OverlayMapScreen.Value;
 
+        public static Rectangle MapScreenClipRect =>
+            IsMiniMap ? new Rectangle(Main.miniMapX, Main.miniMapY, Main.miniMapWidth, Main.miniMapHeight) :
+            new Rectangle(0, 0, Main.screenWidth, Main.screenHeight);
+
         public static float MapAlpha =>
             Main.mapFullscreen ? 1f :
             Main.mapStyle == 1 ? Main.mapMinimapAlpha :
