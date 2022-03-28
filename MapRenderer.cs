@@ -44,7 +44,7 @@ namespace MapMarkers
                 {
                     Point newPos = MapHelper.ScreenToMap(Main.MouseScreen).ToPoint();
 
-                    if (Captured is MapMarker mm && Net.MapClient.AllowPerm(mm, MarkerPerms.Edit) && Main.mouseMiddle && Main.mapFullscreen)
+                    if (Captured is MapMarker mm && mm.AllowPerm(MarkerPerms.Edit) && Main.mouseMiddle && Main.mapFullscreen)
                         Net.MapClient.SetPos(mm, newPos);
                     else if (Captured.CanDrag)
                         Captured.Position = newPos;
@@ -171,8 +171,8 @@ namespace MapMarkers
 
             if (m is MapMarker mm)
             {
-                bool edit = Net.MapClient.AllowPerm(mm, MarkerPerms.Edit);
-                bool delete = Net.MapClient.AllowPerm(mm, MarkerPerms.Delete);
+                bool edit = mm.AllowPerm(MarkerPerms.Edit);
+                bool delete = mm.AllowPerm(MarkerPerms.Delete);
 
                 if (mm.IsServerSide)
                 {
@@ -181,24 +181,25 @@ namespace MapMarkers
                     mouseText.Append(mm.ServerData.Owner);
                 }
 
-                if (edit || delete)
+                if (delete)
                 {
                     addShiftForMore = true;
                     if (shift)
                     {
-                        if (delete)
-                        {
-                            mouseText.AppendLine();
-                            mouseText.Append("[Del] Delete");
-                        }
+                        mouseText.AppendLine();
+                        mouseText.Append("[Del] Delete");
+                    }
+                }
 
-                        if (edit)
-                        {
-                            mouseText.AppendLine();
-                            mouseText.Append("[Middle Click] Move");
-                            mouseText.AppendLine();
-                            mouseText.Append("[Right Click] Edit");
-                        }
+                if (edit)
+                {
+                    addShiftForMore = true;
+                    if (shift)
+                    {
+                        mouseText.AppendLine();
+                        mouseText.Append("[Middle Click] Move");
+                        mouseText.AppendLine();
+                        mouseText.Append("[Right Click] Edit");
                     }
                 }
 

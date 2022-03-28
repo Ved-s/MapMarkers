@@ -86,15 +86,15 @@ namespace MapMarkers.Net
                     Markers.Remove(marker);
                     break;
                 case SyncMessageType.UpdateName:
-                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Edit)) { DisallowEditFor(marker, whoAmI); return; }
+                    if (!marker.AllowPerm(MarkerPerms.Edit, whoAmI)) { DisallowEditFor(marker, whoAmI); return; }
                     marker.Name = reader.ReadString();
                     break;
                 case SyncMessageType.UpdatePos:
-                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Edit)) { DisallowEditFor(marker, whoAmI); return; }
+                    if (!marker.AllowPerm(MarkerPerms.Edit, whoAmI)) { DisallowEditFor(marker, whoAmI); return; }
                     marker.Position = new Point(reader.ReadInt32(), reader.ReadInt32());
                     break;
                 case SyncMessageType.UpdateItem:
-                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Edit)) { DisallowEditFor(marker, whoAmI); return; }
+                    if (!marker.AllowPerm(MarkerPerms.Edit, whoAmI)) { DisallowEditFor(marker, whoAmI); return; }
                     Item item = new Item();
                     item.SetDefaults(reader.ReadInt32());
                     marker.Item = item;
@@ -104,7 +104,7 @@ namespace MapMarkers.Net
                     marker.ServerData.PublicPerms = (MarkerPerms)reader.ReadInt32();
                     break;
                 case SyncMessageType.Delete:
-                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Delete)) return;
+                    if (!marker.AllowPerm(MarkerPerms.Delete, whoAmI)) return;
                     Markers.Remove(marker);
                     break;
             }
@@ -136,14 +136,7 @@ namespace MapMarkers.Net
             packet.Write((byte)type);
             return packet;
         }
-        public static bool AllowPerm(MapMarker m, int player, MarkerPerms perm)
-        {
-            if (m.ServerData == null) return true;
 
-            if (m.ServerData.Owner == Main.player[player].name) return true;
-
-            return m.ServerData.PublicPerms.HasFlag(perm);
-        }
 
         public override void Load(TagCompound tag)
         {

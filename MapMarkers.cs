@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,7 +14,8 @@ namespace MapMarkers
     {
         public MapPlayer.PlayerWorldData CurrentPlayerWorldData;
 
-        public Hotkeys Hotkeys;
+        public ModHotKey CreateMarkerKeybind;
+
         public MarkerGui MarkerGui;
         public MapRenderer Renderer;
 
@@ -21,8 +23,9 @@ namespace MapMarkers
 
         public override void Load()
         {
+            CreateMarkerKeybind = RegisterHotKey("Create Marker", "/");
+
             MarkerGui = new MarkerGui(this);
-            Hotkeys = new Hotkeys(this);
             Renderer = new MapRenderer(this);
 
             MapPatches.Apply();

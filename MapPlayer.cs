@@ -145,7 +145,7 @@ namespace MapMarkers
         public override void PostUpdate()
         {
             if (Main.dedServ) return;
-            if (MapMarkers.Hotkeys.CreateMarker.JustPressed)
+            if (MapMarkers.CreateMarkerKeybind.JustPressed)
             {
                 if (MapMarkers.MarkerGui.Marker != null) return;
 

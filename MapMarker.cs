@@ -222,6 +222,17 @@ namespace MapMarkers
             Name = name;
         }
 
+        public bool AllowPerm(MarkerPerms perm, int player = -1)
+        {
+            if (Main.netMode == NetmodeID.SinglePlayer) return true;
+            if (ServerData == null) return true;
+
+            if (player < 0) player = Main.myPlayer;
+            if (ServerData.Owner == Main.player[player].name) return true;
+
+            return ServerData.PublicPerms.HasFlag(perm);
+        }
+
         public TagCompound GetData()
         {
             TagCompound tag = new TagCompound();
