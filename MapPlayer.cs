@@ -159,18 +159,32 @@ namespace MapMarkers
 
                 Main.mapFullscreen = false;
                 m.BrandNew = true;
-                MapMarkers.CurrentPlayerWorldData.Markers.Add(m);
+                MapMarkers.CurrentPlayerWorldData.AddMarker(m);
                 MapMarkers.MarkerGui.SetMarker(m);
             }
         }
 
-        public class PlayerWorldData 
+        public class PlayerWorldData
         {
             const string MarkersTagKey = "markers";
             const string PinnedTagKey = "pinned";
 
             public List<AbstractMarker> Markers = new List<AbstractMarker>();
             public HashSet<Guid> Pinned = new HashSet<Guid>();
+
+            public Utilities.ShortGuids ShortGuids = new Utilities.ShortGuids();
+
+            public void AddMarker(AbstractMarker m) 
+            {
+                Markers.Add(m);
+                ShortGuids.AddToDictionary(m.Id);
+            }
+
+            public void AddMarkers(IEnumerable<AbstractMarker> m)
+            {
+                foreach (AbstractMarker am in m)
+                    AddMarker(am);
+            }
 
             public void Load(TagCompound tag)
             {
@@ -198,10 +212,11 @@ namespace MapMarkers
                 };
             }
 
-            public void Clear() 
+            public void Clear()
             {
                 Markers.Clear();
                 Pinned.Clear();
+                ShortGuids.Clear();
             }
 
         }

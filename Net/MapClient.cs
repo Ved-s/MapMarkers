@@ -29,7 +29,7 @@ namespace MapMarkers.Net
                         byte[] guid = reader.ReadBytes(16);
                         Guid id = new Guid(guid);
                         MapMarker m = MapMarker.Read(reader, id);
-                        Mod.CurrentPlayerWorldData.Markers.Add(m);
+                        Mod.CurrentPlayerWorldData.AddMarker(m);
                     }
                     break;
             }
@@ -56,7 +56,7 @@ namespace MapMarkers.Net
             {
                 case SyncMessageType.Add:
                     marker = MapMarker.Read(reader, id);
-                    Mod.CurrentPlayerWorldData.Markers.Add(marker);
+                    Mod.CurrentPlayerWorldData.AddMarker(marker);
                     break;
                 case SyncMessageType.Remove:
 
@@ -133,7 +133,7 @@ namespace MapMarkers.Net
                 packet.Write((byte)PacketMessageType.RequestMarkers);
                 packet.Send();
             }
-            else Mod.CurrentPlayerWorldData.Markers.AddRange(ModContent.GetInstance<MapServer>().Markers);
+            else Mod.CurrentPlayerWorldData.AddMarkers(ModContent.GetInstance<MapServer>().Markers);
         }
 
         public static void SetName(MapMarker m, string name)

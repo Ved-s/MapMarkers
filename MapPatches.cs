@@ -17,21 +17,127 @@ namespace MapMarkers
     {
         public static MapMarkers Mod => ModContent.GetInstance<MapMarkers>();
 
-        public static void Apply() 
+        public static void Apply()
         {
             IL.Terraria.Main.DoUpdate += CanPauseGameIL;
-            IL.Terraria.Main.DrawMap += DrawingOnAnyMap;
+            IL.Terraria.Main.DrawMap += DrawMapPatches;
         }
 
-        public static void Remove() 
+        public static void Remove()
         {
             IL.Terraria.Main.DoUpdate -= CanPauseGameIL;
-            IL.Terraria.Main.DrawMap -= DrawingOnAnyMap;
+            IL.Terraria.Main.DrawMap -= DrawMapPatches;
         }
 
-        private static void DrawingOnAnyMap(ILContext il)
+        private static void DrawMapPatches(ILContext il) 
         {
             MapPositionPatch(il);
+            DrawingOnAnyMap(il);
+            AfterAllMapDraws(il);
+        }
+        private static void CanPauseGameIL(ILContext il)
+        {
+            ILCursor c = new ILCursor(il);
+            ILLabel pauseCode = c.DefineLabel();
+
+            /*
+                ldsfld    bool Terraria.Main::inFancyUI
+                brfalse   IL_1829
+                
+                ldsfld    bool Terraria.Main::autoPause
+                brfalse   IL_1829
+             */
+
+            if (!c.TryGotoNext(
+                x => x.MatchLdsfld<Main>("inFancyUI"),
+                x => x.MatchBrfalse(out _),
+                x => x.MatchLdsfld<Main>("autoPause"),
+                x => x.MatchBrfalse(out _)
+                ))
+            {
+                Mod.Logger.WarnFormat("Patch error: {0} (1)", il.Method.FullName);
+                return;
+            }
+            c.Index += 4;
+            c.MarkLabel(pauseCode);
+
+            /*
+                ldsfld    int32 Terraria.Main::netMode
+                brtrue    IL_1829
+                
+                ldsfld    bool Terraria.Main::playerInventory
+                brtrue.s  IL_1455
+             */
+
+            if (!c.TryGotoPrev(
+                x => x.MatchLdsfld<Main>("netMode"),
+                x => x.MatchBrtrue(out _),
+                x => x.MatchLdsfld<Main>("playerInventory"),
+                x => x.MatchBrtrue(out _)
+                ))
+            {
+                Mod.Logger.WarnFormat("Patch error: {0} (2)", il.Method.FullName);
+                return;
+            }
+
+            c.Index += 2;
+            c.Emit(OpCodes.Call, PatchMethod(nameof(CanPauseGame)));
+            c.Emit(OpCodes.Brtrue, pauseCode);
+        }
+
+        private static void AfterAllMapDraws(ILContext il) 
+        {
+            /*
+              IL_323D: ldloc.0
+	          IL_323E: ldstr     ""
+	          IL_3243: call      bool [mscorlib]System.String::op_Inequality(string, string)
+	          IL_3248: brfalse.s IL_3257
+
+	          IL_324A: ldarg.0
+	          IL_324B: ldloc.0
+	          IL_324C: ldc.i4.0
+	          IL_324D: ldc.i4.0
+	          IL_324E: ldc.i4.m1
+	          IL_324F: ldc.i4.m1
+	          IL_3250: ldc.i4.m1
+	          IL_3251: ldc.i4.m1
+	          IL_3252: call      instance void Terraria.Main::MouseText(string, int32, uint8, int32, int32, int32, int32)
+            */
+
+            ILCursor c = new ILCursor(il);
+
+            int mouseText = -1;
+
+            if (!c.TryGotoNext(
+                x=>x.MatchLdloc(out mouseText),
+                x=>x.MatchLdstr(""),
+                x=>x.MatchCall(out _),
+                x=>x.MatchBrfalse(out _),
+
+                x=>x.MatchLdarg(0),
+                x=>x.MatchLdloc(mouseText),
+                x=>x.MatchLdcI4(0),
+                x=>x.MatchLdcI4(0),
+                x=>x.MatchLdcI4(-1),
+                x=>x.MatchLdcI4(-1),
+                x=>x.MatchLdcI4(-1),
+                x=>x.MatchLdcI4(-1),
+                x=>x.MatchCall<Main>("MouseText")
+                )) 
+            {
+                Mod.Logger.WarnFormat("Patch error: {0} (after all map draws)", il.Method.FullName);
+                return;
+            }
+
+            c.Index++;
+
+            c.Emit(OpCodes.Pop);
+            c.Emit(OpCodes.Ldloca, mouseText);
+            c.Emit(OpCodes.Call, PatchMethod(nameof(PostDrawFullMap)));
+            c.Emit(OpCodes.Ldloc, mouseText);
+        }
+        private static void DrawingOnAnyMap(ILContext il)
+        {
             ILCursor c = new ILCursor(il);
 
             /* Get mouseText variable index
@@ -88,56 +194,6 @@ namespace MapMarkers
             c.Emit(OpCodes.Call, PatchMethod(nameof(PostDrawMap)));
             c.Emit<Main>(OpCodes.Ldsfld, "mapFullscreen");
         }
-        private static void CanPauseGameIL(ILContext il)
-        {
-            ILCursor c = new ILCursor(il);
-            ILLabel pauseCode = c.DefineLabel();
-
-            /*
-                ldsfld    bool Terraria.Main::inFancyUI
-                brfalse   IL_1829
-                
-                ldsfld    bool Terraria.Main::autoPause
-                brfalse   IL_1829
-             */
-
-            if (!c.TryGotoNext(
-                x => x.MatchLdsfld<Main>("inFancyUI"),
-                x => x.MatchBrfalse(out _),
-                x => x.MatchLdsfld<Main>("autoPause"),
-                x => x.MatchBrfalse(out _)
-                ))
-            {
-                Mod.Logger.WarnFormat("Patch error: {0} (1)", il.Method.FullName);
-                return;
-            }
-            c.Index += 4;
-            c.MarkLabel(pauseCode);
-
-            /*
-                ldsfld    int32 Terraria.Main::netMode
-                brtrue    IL_1829
-                
-                ldsfld    bool Terraria.Main::playerInventory
-                brtrue.s  IL_1455
-             */
-
-            if (!c.TryGotoPrev(
-                x => x.MatchLdsfld<Main>("netMode"),
-                x => x.MatchBrtrue(out _),
-                x => x.MatchLdsfld<Main>("playerInventory"),
-                x => x.MatchBrtrue(out _)
-                ))
-            {
-                Mod.Logger.WarnFormat("Patch error: {0} (2)", il.Method.FullName);
-                return;
-            }
-
-            c.Index += 2;
-            c.Emit(OpCodes.Call, PatchMethod(nameof(CanPauseGame)));
-            c.Emit(OpCodes.Brtrue, pauseCode);
-        }
-
         private static void MapPositionPatch(ILContext il) 
         {
             /*
@@ -229,7 +285,21 @@ namespace MapMarkers
             c.Emit(OpCodes.Ldloca, mapPosY);
             c.Emit(OpCodes.Call, PatchMethod(nameof(FixOverlayMapPosition)));
         }
-        private static void FixOverlayMapPosition(ref float mapX, ref float mapY) 
+        
+        private static void PostDrawMap(ref string text)
+        {
+            ModContent.GetInstance<MapMarkers>().Renderer.PostDrawMap(ref text);
+        }
+        private static void PostDrawFullMap(ref string text)
+        {
+            ModContent.GetInstance<MapMarkers>().Renderer.PostDrawFullMap(ref text);
+        }
+        private static bool CanPauseGame()
+        {
+            return ModContent.GetInstance<MapMarkers>().MarkerGui.Marker != null &&
+                (ModContent.GetInstance<MapConfig>().AutopauseOnUI || Main.autoPause);
+        }
+        private static void FixOverlayMapPosition(ref float mapX, ref float mapY)
         {
             if (MapHelper.IsOverlayMap)
             {
@@ -245,16 +315,6 @@ namespace MapMarkers
                 mapY -= diff.Y;
             }
             MapHelper.OverlayMapScreen = new Vector2(mapX, mapY);
-        }
-
-        private static void PostDrawMap(ref string text)
-        {
-            ModContent.GetInstance<MapMarkers>().Renderer.PostDrawMap(ref text);
-        }
-        private static bool CanPauseGame()
-        {
-            return ModContent.GetInstance<MapMarkers>().MarkerGui.Marker != null &&
-                (ModContent.GetInstance<MapConfig>().AutopauseOnUI || Main.autoPause);
         }
 
         private static MethodInfo PatchMethod(string name) =>

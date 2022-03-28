@@ -56,7 +56,7 @@ namespace MapMarkers
         {
             MapConfig conf = ModContent.GetInstance<MapConfig>();
 
-            CurrentPlayerWorldData.Markers.Add(new SpawnMarker());
+            CurrentPlayerWorldData.AddMarker(new SpawnMarker());
 
             if (conf.AddChestMarkers) AddChesMarkers();
             if (conf.AddStatueMarkers) AddStatueMarkers();
@@ -78,7 +78,7 @@ namespace MapMarkers
                     {
                         int item = StatueTileToItem(t);
                         if (item < 0) continue;
-                        CurrentPlayerWorldData.Markers.Add(new StatueMarker(item, x, y));
+                        CurrentPlayerWorldData.AddMarker(new StatueMarker(item, x, y));
                         statues++;
                     }
                 }
@@ -101,7 +101,7 @@ namespace MapMarkers
 
                 if (Chest.isLocked(chest.x, chest.y))
                 {
-                    CurrentPlayerWorldData.Markers.Add(new LockedChestMarker(i));
+                    CurrentPlayerWorldData.AddMarker(new LockedChestMarker(i));
                     chests++;
                 }
             }

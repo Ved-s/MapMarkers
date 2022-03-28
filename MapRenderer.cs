@@ -1,6 +1,5 @@
 ﻿using MapMarkers.Items;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Text;
@@ -12,6 +11,8 @@ namespace MapMarkers
 {
     public class MapRenderer
     {
+        public static bool UseMouseTextOnMinimap = true;
+
         internal bool MiddlePressed = false;
         internal bool RightPressed = false;
 
@@ -24,6 +25,9 @@ namespace MapMarkers
         private MapMarkers MapMarkers;
 
         internal AbstractMarker Captured;
+
+        internal string HoverMarkerText;
+        internal Vector2 HoverMarkerTextPos = new Vector2();
 
         public MapRenderer(MapMarkers mod)
         {
@@ -50,19 +54,9 @@ namespace MapMarkers
 
         internal void PostDrawMap(ref string mouseText)
         {
-#if DEBUG
-            Point tl = MapHelper.MapToScreen(new Vector2(10)).ToPoint();
-            Point br = MapHelper.MapToScreen(new Vector2(Main.maxTilesX - 11, Main.maxTilesY - 11)).ToPoint();
+            HoverMarkerText = null;
 
-            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(tl.X, tl.Y, br.X - tl.X, 1), Color.Yellow);
-            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(tl.X, tl.Y, 1, br.Y - tl.Y), Color.Yellow);
-
-            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(tl.X, br.Y, br.X - tl.X, 1), Color.Yellow);
-            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(br.X, tl.Y, 1, br.Y - tl.Y), Color.Yellow);
-#endif
             if (MapMarkers.CurrentPlayerWorldData == null) return;
-
-            Main.spriteBatch.End();
 
             StopDrawingAfterHover = false;
             bool hovered = false;
@@ -100,8 +94,9 @@ namespace MapMarkers
                     markerText.Append(m.Name);
 
 #if DEBUG
-                    markerText.AppendLine();
-                    markerText.Append(m.Id.ToString());
+                    markerText.Append(" [");
+                    markerText.Append(MapMarkers.CurrentPlayerWorldData.ShortGuids.GetShortGuid(m.Id));
+                    markerText.Append(']');
 #endif
                     if (pinned)
                     {
@@ -120,41 +115,49 @@ namespace MapMarkers
 
                     if (StopDrawingAfterHover)
                         break;
-
-                    if (!MapHelper.IsMiniMap)
-                    {
-                        markerTextPos = screenpos + new Vector2(size.X + 10, 0);
-                    }
-
+                    markerTextPos = screenpos + new Vector2(size.X + 10, 0);
 #if DEBUG
-                    if (m.CanTeleport) 
+                    if (m.CanTeleport)
                     {
-                        Main.spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, null, null);
                         DrawTPBoundary(m);
-                        Main.spriteBatch.End();
                     }
 #endif
                 }
-
-                Main.spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, null, null);
                 m.Draw(screenpos);
-                Main.spriteBatch.End();
             }
 
             if (markerText.Length > 0)
             {
-                if (!markerTextPos.HasValue)
+                if (MapHelper.IsMiniMap && UseMouseTextOnMinimap)
                     mouseText = markerText.ToString();
-                else 
+                else
                 {
-                    Main.spriteBatch.Begin();
-                    Utils.DrawBorderString(Main.spriteBatch, markerText.ToString(), markerTextPos.Value, Color.White);
-                    Main.spriteBatch.End();
+                    HoverMarkerText = markerText.ToString();
+                    HoverMarkerTextPos = markerTextPos.Value;
                 }
             }
 
-            Main.spriteBatch.Begin();
             MapMarkers.MarkerGui.Draw();
+        }
+        internal void PostDrawFullMap(ref string mouseText)
+        {
+#if DEBUG
+            Point tl = MapHelper.MapToScreen(new Vector2(10)).ToPoint();
+            Point br = MapHelper.MapToScreen(new Vector2(Main.maxTilesX - 11, Main.maxTilesY - 11)).ToPoint();
+
+            DrawRect(new Rectangle(tl.X, tl.Y, br.X - tl.X, br.Y - tl.Y), Color.Yellow);
+            DrawRect(MapHelper.MapScreenClipRect, Color.Red);
+#endif
+
+            if (HoverMarkerText != null)
+            {
+                float posScale = 1f;
+                if (MapHelper.IsFullscreenMap)
+                    posScale = Main.UIScale;
+
+                Utils.DrawBorderString(Main.spriteBatch, HoverMarkerText, HoverMarkerTextPos / posScale, Color.White);
+            }
+
         }
 
         private void MarkerHover(AbstractMarker m, StringBuilder mouseText)
@@ -225,7 +228,7 @@ namespace MapMarkers
                 Captured = m;
             }
 
-            if (m.CanTeleport && MapPlayer.LocalPlayerHasTPPotion && !MapPlayer.LocalPlayerHasTPDebuff) 
+            if (m.CanTeleport && MapPlayer.LocalPlayerHasTPPotion && !MapPlayer.LocalPlayerHasTPDebuff)
             {
                 addShiftForMore = true;
 
@@ -235,7 +238,7 @@ namespace MapMarkers
                     mouseText.Append("[Ctrl+Right Click] Teleport");
                 }
 
-                if (RightPressed && ctrl) 
+                if (RightPressed && ctrl)
                 {
                     Vector2? pos = TryGetTeleportPos(m);
 
@@ -243,7 +246,7 @@ namespace MapMarkers
                     {
                         MarkerTPPotion.UsedOnMarker(m, pos.Value);
                     }
-                    else 
+                    else
                     {
                         Main.NewText(CannotTeleport);
                     }
@@ -273,7 +276,7 @@ namespace MapMarkers
                             MapMarkers.CurrentPlayerWorldData.Pinned.Add(m.Id);
                     }
                 }
-                
+
             }
 
             if (!shift && addShiftForMore)
@@ -281,12 +284,6 @@ namespace MapMarkers
                 mouseText.AppendLine();
                 mouseText.Append("[Shift] More");
             }
-        }
-
-        private static Color FixItemColor(Color c)
-        {
-            if (c.R + c.G + c.B == 0) return Color.White;
-            return c;
         }
 
         public static string GetCenteredPosition(Point pos)
@@ -316,7 +313,7 @@ namespace MapMarkers
             return xs + "\n" + ys;
         }
 
-        private static void DrawTPBoundary(AbstractMarker m) 
+        private static void DrawTPBoundary(AbstractMarker m)
         {
             Vector2 tpTarget = (m.Size / 2) + (m.Position.ToVector2() * 16) - (Main.LocalPlayer.Size / 2);
 
@@ -326,7 +323,7 @@ namespace MapMarkers
             Vector2 end = MapHelper.MapToScreen(tpRadius / 8 + start);
             start = MapHelper.MapToScreen(start);
 
-            Main.spriteBatch.Draw(Main.magicPixel,
+            DrawRect(
                 new Rectangle((int)start.X, (int)start.Y, (int)(end.X - start.X), (int)(end.Y - start.Y)),
                 Color.Yellow * 0.3f
                 );
@@ -351,12 +348,12 @@ namespace MapMarkers
                 for (float x = start.X; x < start.X + area.X; x += 8)
                 {
                     Vector2 pos = new Vector2(x, y);
-                    if (!Collision.SolidCollision(pos, local.width, local.height)) 
+                    if (!Collision.SolidCollision(pos, local.width, local.height))
                     {
                         Vector2 diff = tpTarget - pos;
 
                         float distSQ = diff.Y * diff.Y + diff.X * diff.X;
-                        if (distSQ < closestDistSQ) 
+                        if (distSQ < closestDistSQ)
                         {
                             anyPos = true;
                             closestDistSQ = distSQ;
@@ -369,6 +366,15 @@ namespace MapMarkers
                 return closestPos;
             return null;
 
+        }
+
+        public static void DrawRect(Rectangle rect, Color color, int thick = 1)
+        {
+            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(rect.Left, rect.Top, rect.Width, thick), color);
+            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(rect.Left, rect.Top, thick, rect.Height), color);
+
+            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(rect.Left, rect.Bottom - thick, rect.Width, thick), color);
+            Main.spriteBatch.Draw(Main.magicPixel, new Rectangle(rect.Right - thick, rect.Top, thick, rect.Height), color);
         }
     }
 }
