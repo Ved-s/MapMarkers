@@ -15,17 +15,6 @@ namespace MapMarkers.Items
     {
         public static int ItemType => ModContent.ItemType<MarkerTPPotion>();
 
-        public override void SetStaticDefaults()
-        {
-            DisplayName.SetDefault("Marker Teleportation Potion");
-            Tooltip.SetDefault(
-                "Allows you to teleport to markers.\n" +
-                "To teleport, Ctrl+RightClick a marker on fullscreen map.\n" +
-                "Only usable without Teleportation Disability debuff.\n" +
-                "Cannot teleport to unexplored area."
-                );
-        }
-
         public override void SetDefaults()
         {
             Item.width = 24;
