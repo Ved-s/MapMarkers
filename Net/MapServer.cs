@@ -38,7 +38,7 @@ namespace MapMarkers.Net
                     Console.WriteLine($"[Map Markers] Sending {Markers.Count} markers to {Main.player[whoAmI].name}");
                     foreach (MapMarker m in Markers) 
                     {
-                        packet.Write(m.ServerData.Id.ToByteArray());
+                        packet.Write(m.Id.ToByteArray());
                         m.Write(packet);
                     }
                     packet.Send(whoAmI);
@@ -55,7 +55,7 @@ namespace MapMarkers.Net
             long pos = reader.BaseStream.Position;
             bool redirect = true;
 
-            MapMarker marker = Markers.FirstOrDefault(m => m.ServerData.Id == id);
+            MapMarker marker = Markers.FirstOrDefault(m => m.Id == id);
 
 #if DEBUG
             Console.WriteLine(string.Format("[Map Markers] Received message {0}, marker {1}", type, marker?.Name ?? "null"));
@@ -86,15 +86,15 @@ namespace MapMarkers.Net
                     Markers.Remove(marker);
                     break;
                 case SyncMessageType.UpdateName:
-                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Edit)) { DisallowEditFor(marker, whoAmI); return; }
+                    if (!marker.AllowPerm(MarkerPerms.Edit, whoAmI)) { DisallowEditFor(marker, whoAmI); return; }
                     marker.Name = reader.ReadString();
                     break;
                 case SyncMessageType.UpdatePos:
-                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Edit)) { DisallowEditFor(marker, whoAmI); return; }
+                    if (!marker.AllowPerm(MarkerPerms.Edit, whoAmI)) { DisallowEditFor(marker, whoAmI); return; }
                     marker.Position = new(reader.ReadInt32(), reader.ReadInt32());
                     break;
                 case SyncMessageType.UpdateItem:
-                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Edit)) { DisallowEditFor(marker, whoAmI); return; }
+                    if (!marker.AllowPerm(MarkerPerms.Edit, whoAmI)) { DisallowEditFor(marker, whoAmI); return; }
                     Item item = new Item();
                     item.SetDefaults(reader.ReadInt32());
                     marker.Item = item;
@@ -105,7 +105,7 @@ namespace MapMarkers.Net
                     break;
                 case SyncMessageType.Delete:
                     if (marker is null) return;
-                    if (!AllowPerm(marker, whoAmI, MarkerPerms.Delete)) return;
+                    if (!marker.AllowPerm(MarkerPerms.Delete, whoAmI)) return;
                     Markers.Remove(marker);
                     break;
             }
@@ -133,18 +133,9 @@ namespace MapMarkers.Net
         {
             ModPacket packet = Mod.GetPacket();
             packet.Write((byte)PacketMessageType.Sync);
-            packet.Write(m.ServerData.Id.ToByteArray());
+            packet.Write(m.Id.ToByteArray());
             packet.Write((byte)type);
             return packet;
-        }
-
-        public static bool AllowPerm(MapMarker m, int player, MarkerPerms perm)
-        {
-            if (m.ServerData == null) return true;
-
-            if (m.ServerData.Owner == Main.player[player].name) return true;
-
-            return m.ServerData.PublicPerms.HasFlag(perm);
         }
 
         public override void LoadWorldData(TagCompound tag)

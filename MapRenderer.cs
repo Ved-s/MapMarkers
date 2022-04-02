@@ -15,6 +15,8 @@ namespace MapMarkers
 {
     public class MapRenderer : ModMapLayer
     {
+        public static bool UseMouseTextOnMinimap = true;
+
         internal bool MiddlePressed = false;
         internal bool RightPressed = false;
 
@@ -28,17 +30,20 @@ namespace MapMarkers
 
         internal AbstractMarker Captured;
 
+        internal string HoverMarkerText;
+        internal Vector2 HoverMarkerTextPos = new Vector2();
+
         internal void Update()
         {
             MiddlePressed = Main.mouseMiddle && Main.mouseMiddleRelease;
             RightPressed = Main.mouseRight && Main.mouseRightRelease;
 
-            if (MapSystem.CurrentMarkers != null)
+            if (MapSystem.CurrentPlayerWorldData != null)
                 if (Captured is not null)
                 {
                     Point newPos = MapHelper.ScreenToMap(Main.MouseScreen).ToPoint();
 
-                    if (Captured is MapMarker mm && Net.MapClient.AllowPerm(mm, MarkerPerms.Edit) && Main.mouseMiddle && Main.mapFullscreen)
+                    if (Captured is MapMarker mm && mm.AllowPerm(MarkerPerms.Edit) && Main.mouseMiddle && Main.mapFullscreen)
                         Net.MapClient.SetPos(mm, newPos);
                     else if (Captured.CanDrag)
                         Captured.Position = newPos;
@@ -48,14 +53,14 @@ namespace MapMarkers
 
         public override void Draw(ref MapOverlayDrawContext context, ref string text)
         {
-            if (MapSystem.CurrentMarkers is null) return;
+            if (MapSystem.CurrentPlayerWorldData is null) return;
 
             bool hovered = false;
 
-            Vector2 textPos = default;
-            StringBuilder markerText = new();
+            StringBuilder markerText = new StringBuilder();
+            Vector2 markerTextPos = default;
 
-            foreach (AbstractMarker m in MapSystem.CurrentMarkers.ToArray())
+            foreach (AbstractMarker m in MapSystem.CurrentPlayerWorldData.Markers.ToArray())
             {
                 if (MapHelper.MapScale < m.MinZoom || !m.Active)
                     continue;
@@ -64,15 +69,35 @@ namespace MapMarkers
                 Vector2 screenpos = MapHelper.MapToScreen(m.Position.ToVector2()) - size / 2;
                 Rectangle screenRect = new Rectangle((int)screenpos.X, (int)screenpos.Y, (int)size.X, (int)size.Y);
 
-                if (!MapHelper.IsVisibleWithoutClipping(screenRect))
-                    continue;
+                bool pinned = MapSystem.CurrentPlayerWorldData.Pinned.Contains(m.Id);
 
-                m.Draw(screenpos);
+                if (pinned)
+                {
+                    screenRect.MoveInside(MapHelper.MapScreenRect);
+
+                    Rectangle mapPosClipRect = MapHelper.MapScreenRect;
+                    mapPosClipRect.Width -= (int)size.X;
+                    mapPosClipRect.Height -= (int)size.Y;
+                    screenpos.MoveInside(mapPosClipRect);
+                }
+                else if (!MapHelper.IsVisibleWithoutClipping(screenRect))
+                    continue;
 
                 if (!hovered && screenRect.Contains(Main.MouseScreen.ToPoint()))
                 {
                     hovered = true;
                     markerText.Append(m.Name);
+
+#if DEBUG
+                    markerText.Append(" [");
+                    markerText.Append(MapSystem.CurrentPlayerWorldData.ShortGuids.GetShortGuid(m.Id));
+                    markerText.Append(']');
+#endif
+                    if (pinned)
+                    {
+                        markerText.AppendLine();
+                        markerText.Append("Pinned");
+                    }
 
                     if (m.ShowPos)
                     {
@@ -83,17 +108,24 @@ namespace MapMarkers
                     if (MapHelper.IsFullscreenMap)
                         MarkerHover(m, markerText);
 
-                    textPos = screenpos + new Vector2(size.X + 10, 0);
+                    if (StopDrawingAfterHover)
+                        break;
+
+                    markerTextPos = screenpos + new Vector2(size.X + 10, 0);
                 }
+                m.Draw(screenpos);
             }
 
-            if (hovered)
+            if (markerText.Length > 0)
             {
-                if (MapHelper.IsFullscreenMap)
+                if (MapHelper.IsMiniMap && UseMouseTextOnMinimap)
+                    text = markerText.ToString();
+                else
                 {
-                    Utils.DrawBorderString(Main.spriteBatch, markerText.ToString(), textPos, Color.White);
+                    Utils.DrawBorderString(Main.spriteBatch, markerText.ToString(), markerTextPos, Color.White, Main.UIScale);
+                    //HoverMarkerText = markerText.ToString();
+                    //HoverMarkerTextPos = markerTextPos.Value;
                 }
-                else text = markerText.ToString();
             }
         }
 
@@ -108,8 +140,8 @@ namespace MapMarkers
 
             if (m is MapMarker mm)
             {
-                bool edit = Net.MapClient.AllowPerm(mm, MarkerPerms.Edit);
-                bool delete = Net.MapClient.AllowPerm(mm, MarkerPerms.Delete);
+                bool edit = mm.AllowPerm(MarkerPerms.Edit);
+                bool delete = mm.AllowPerm(MarkerPerms.Delete);
 
                 if (mm.IsServerSide)
                 {
@@ -150,7 +182,7 @@ namespace MapMarkers
                     {
                         Captured = m;
                     }
-                    else if (RightPressed && !ctrl)
+                    else if (RightPressed && !ctrl && !shift)
                     {
                         Main.mapFullscreen = false;
                         StopDrawingAfterHover = true;
@@ -189,6 +221,30 @@ namespace MapMarkers
                     Main.mapFullscreen = false;
                     StopDrawingAfterHover = true;
                 }
+            }
+
+            if (m.CanPin)
+            {
+                addShiftForMore = true;
+                if (shift)
+                {
+                    bool pin = MapSystem.CurrentPlayerWorldData.Pinned.Contains(m.Id);
+
+                    mouseText.AppendLine();
+                    mouseText.Append("[Shift+Right Click] ");
+
+                    if (pin) mouseText.Append("Unpin");
+                    else mouseText.Append("Pin");
+
+                    if (RightPressed)
+                    {
+                        if (pin)
+                            MapSystem.CurrentPlayerWorldData.Pinned.Remove(m.Id);
+                        else
+                            MapSystem.CurrentPlayerWorldData.Pinned.Add(m.Id);
+                    }
+                }
+
             }
 
             if (!shift && addShiftForMore)

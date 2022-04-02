@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Faithlife.Utility;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using System;
@@ -18,19 +19,55 @@ namespace MapMarkers
 {
     public abstract class AbstractMarker
     {
+        static Guid NamespaceGUID = Guid.Parse("d214aa46-44ad-4a46-8afb-96c4e4b7b143");
+
+        protected Guid NonDeterministicGuid = Guid.NewGuid();
+        protected Guid? DeterministicGuid = null;
+
+        public Guid Id
+        {
+            get
+            {
+                if (!UseDeterministicGuid)
+                    return NonDeterministicGuid;
+
+                if (!DeterministicGuid.HasValue)
+                    RegenerateDeterministicGuid();
+
+                return DeterministicGuid.Value;
+            }
+            set => NonDeterministicGuid = value;
+        }
         public virtual Point Position { get; set; }
         public virtual string Name { get; set; }
         public virtual float MinZoom => 0f;
         public virtual bool Active => true;
 
+        protected virtual bool UseDeterministicGuid => false;
+
         public abstract Vector2 Size { get; }
 
         public virtual bool CanDrag => false;
+        public virtual bool CanPin => true;
         public virtual bool CanTeleport => CanTeleportDefault();
         public virtual bool ShowPos => true;
 
         public abstract void Draw(Vector2 screenPos);
         public virtual void Hover(StringBuilder mouseText) { }
+
+        protected void RegenerateDeterministicGuid()
+        {
+            StringBuilder builder = new StringBuilder();
+            builder.Append(GetType().Name);
+            builder.Append(Name);
+            builder.Append(Position.X);
+            builder.Append(Position.Y);
+            ChangeDetermenisticGuidData(builder);
+            DeterministicGuid = GuidUtility.Create(NamespaceGUID, builder.ToString());
+        }
+
+        protected virtual void ChangeDetermenisticGuidData(StringBuilder builder) { }
+
 
         protected bool CanTeleportDefault()
         {
@@ -45,6 +82,7 @@ namespace MapMarkers
     {
         private readonly int Item;
 
+        protected override bool UseDeterministicGuid => true;
         public override float MinZoom => 1f;
         public override string Name => Lang.GetItemNameValue(Item);
         public override bool Active => Main.Map[Position.X, Position.Y].Light > 40;
@@ -61,7 +99,7 @@ namespace MapMarkers
         {
             if (Main.tile[Position.X, Position.Y].TileType != TileID.Statues)
             {
-                ModContent.GetInstance<MapSystem>().CurrentMarkers.Remove(this);
+                ModContent.GetInstance<MapSystem>().CurrentPlayerWorldData.Markers.Remove(this);
                 return;
             }
 
@@ -77,6 +115,7 @@ namespace MapMarkers
     }
     public class LockedChestMarker : AbstractMarker
     {
+        protected override bool UseDeterministicGuid => true;
         public override float MinZoom => 1f;
 
         public override bool Active
@@ -144,7 +183,7 @@ namespace MapMarkers
         {
             if (!Terraria.Chest.IsLocked(Position.X, Position.Y))
             {
-                ModContent.GetInstance<MapSystem>().CurrentMarkers.Remove(this);
+                ModContent.GetInstance<MapSystem>().CurrentPlayerWorldData.Markers.Remove(this);
                 return;
             }
 
@@ -207,6 +246,17 @@ namespace MapMarkers
             Name = name;
         }
 
+        public bool AllowPerm(MarkerPerms perm, int player = -1)
+        {
+            if (Main.netMode == NetmodeID.SinglePlayer) return true;
+            if (ServerData == null) return true;
+
+            if (player < 0) player = Main.myPlayer;
+            if (ServerData.Owner == Main.player[player].name) return true;
+
+            return ServerData.PublicPerms.HasFlag(perm);
+        }
+
         public TagCompound GetData()
         {
             TagCompound tag = new TagCompound();
@@ -214,6 +264,7 @@ namespace MapMarkers
             tag["y"] = Position.Y;
             tag["item"] = ItemIO.Save(Item);
             tag["name"] = Name;
+            tag["id"] = Id.ToString();
             if (ServerData != null) tag["server"] = ServerData.GetData();
             return tag;
         }
@@ -229,8 +280,8 @@ namespace MapMarkers
             item.SetDefaults(itemType);
 
             MapMarker m = new MapMarker(name, new Point(x, y), item);
+            m.Id = id;
             m.ServerData = new ServerMarkerData();
-            m.ServerData.Id = id;
             m.ServerData.Owner = reader.ReadString();
             m.ServerData.PublicPerms = (MarkerPerms)reader.ReadInt32();
 
@@ -255,6 +306,24 @@ namespace MapMarkers
             else if (i is TagCompound tag)
                 ItemIO.Load(item, tag);
 
+            string idstr = null;
+            Guid guid = Guid.NewGuid();
+
+            if (data.ContainsKey("id"))
+            {
+                idstr = data.GetString("id");
+                guid = Guid.Parse(idstr);
+            }
+            else if (data.ContainsKey("server"))
+            {
+                TagCompound servd = data.GetCompound("server");
+                if (servd.ContainsKey("id"))
+                {
+                    idstr = servd.GetString("id");
+                    guid = Guid.Parse(idstr);
+                }
+            }
+
             TagCompound server = null;
             ServerMarkerData smd = null;
             data.TryLoad("server", ref server);
@@ -265,7 +334,8 @@ namespace MapMarkers
 
             return new MapMarker(data.GetString("name"), new Point(data.GetInt("x"), data.GetInt("y")), item)
             {
-                ServerData = smd
+                ServerData = smd,
+                Id = guid
             };
         }
 
@@ -291,18 +361,15 @@ namespace MapMarkers
         private const string OwnerDataKey = "owner";
         private const string PubEditDataKey = "edit";
         private const string PubPermDataKey = "perms";
-        private const string IdDataKey = "id";
 
         public string Owner;
         public MarkerPerms PublicPerms = MarkerPerms.None;
-        public Guid Id;
 
         public TagCompound GetData()
         {
             TagCompound tag = new TagCompound();
             tag[OwnerDataKey] = Owner;
             tag[PubPermDataKey] = (int)PublicPerms;
-            tag[IdDataKey] = Id.ToString();
             return tag;
         }
 
@@ -319,10 +386,6 @@ namespace MapMarkers
             {
                 m.PublicPerms = (MarkerPerms)data.GetInt(PubPermDataKey);
             }
-
-            string id = null;
-            data.TryLoad(IdDataKey, ref id);
-            if (id != null) m.Id = Guid.Parse(id);
 
             return m;
         }

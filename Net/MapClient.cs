@@ -31,10 +31,7 @@ namespace MapMarkers.Net
                         Guid id = new Guid(guid);
                         MapMarker m = MapMarker.Read(reader, id);
 
-                        int index = MapSystem.CurrentMarkers.FindIndex(m => m is MapMarker mm && mm.ServerData?.Id == id);
-                        if (index != -1) MapSystem.CurrentMarkers.RemoveAt(index);
-
-                        MapSystem.CurrentMarkers.Add(m);
+                        MapSystem.CurrentPlayerWorldData.AddMarker(m);
                     }
                     break;
             }
@@ -51,7 +48,7 @@ namespace MapMarkers.Net
 
             if (type != SyncMessageType.Add)
             {
-                marker = MapSystem.CurrentMarkers.FirstOrDefault(m => m is MapMarker mm && mm.ServerData != null && mm.ServerData.Id == id) as MapMarker;
+                marker = MapSystem.CurrentPlayerWorldData.Markers.FirstOrDefault(m => m is MapMarker mm && mm.IsServerSide && mm.Id == id) as MapMarker;
                 if (marker == null) return;
             }
 
@@ -61,7 +58,7 @@ namespace MapMarkers.Net
             {
                 case SyncMessageType.Add:
                     marker = MapMarker.Read(reader, id);
-                    MapSystem.CurrentMarkers.Add(marker);
+                    MapSystem.CurrentPlayerWorldData.AddMarker(marker);
                     break;
                 case SyncMessageType.Remove:
                     if (marker.ServerData?.Owner == Main.LocalPlayer.name)
@@ -74,7 +71,7 @@ namespace MapMarkers.Net
                     }
                     else
                     {
-                        MapSystem.CurrentMarkers.Remove(marker);
+                        MapSystem.CurrentPlayerWorldData.Markers.Remove(marker);
                         if (MapSystem.MarkerGui.Marker == marker)
                         {
                             Main.blockInput = false;
@@ -97,11 +94,11 @@ namespace MapMarkers.Net
                     break;
                 case SyncMessageType.UpdatePerms:
                     marker.ServerData.PublicPerms = (MarkerPerms)reader.ReadInt32();
-                    if (!AllowPerm(marker, MarkerPerms.Edit) && MapSystem.MarkerGui.Marker == marker)
+                    if (!marker.AllowPerm(MarkerPerms.Edit) && MapSystem.MarkerGui.Marker == marker)
                         MapSystem.MarkerGui.SetMarker(null);
                     break;
                 case SyncMessageType.Delete:
-                    MapSystem.CurrentMarkers.Remove(marker);
+                    MapSystem.CurrentPlayerWorldData.Markers.Remove(marker);
                     if (MapSystem.MarkerGui.Marker == marker)
                         MapSystem.MarkerGui.SetMarker(null);
                     break;
@@ -114,19 +111,9 @@ namespace MapMarkers.Net
         {
             ModPacket packet = Mod.GetPacket();
             packet.Write((byte)PacketMessageType.Sync);
-            packet.Write(m.ServerData.Id.ToByteArray());
+            packet.Write(m.Id.ToByteArray());
             packet.Write((byte)type);
             return packet;
-        }
-
-        public static bool AllowPerm(MapMarker m, MarkerPerms perm)
-        {
-            if (Main.netMode == NetmodeID.SinglePlayer) return true;
-            if (m.ServerData == null) return true;
-
-            if (m.ServerData.Owner == Main.LocalPlayer.name) return true;
-
-            return m.ServerData.PublicPerms.HasFlag(perm);
         }
 
         public static void RequestMarkers()
@@ -137,7 +124,7 @@ namespace MapMarkers.Net
                 packet.Write((byte)PacketMessageType.RequestMarkers);
                 packet.Send();
             }
-            else MapSystem.CurrentMarkers.AddRange(ModContent.GetInstance<MapServer>().Markers);
+            else MapSystem.CurrentPlayerWorldData.AddMarkers(ModContent.GetInstance<MapServer>().Markers);
         }
 
         public static void SetName(MapMarker m, string name)
@@ -149,7 +136,7 @@ namespace MapMarkers.Net
                     m.Name = name;
                     break;
                 case NetmodeID.MultiplayerClient:
-                    if (!AllowPerm(m, MarkerPerms.Edit)) return;
+                    if (!m.AllowPerm(MarkerPerms.Edit)) return;
                     m.Name = name;
                     if (!m.IsServerSide) return;
                     ModPacket packet = CreateSyncPacket(m, SyncMessageType.UpdateName);
@@ -167,7 +154,7 @@ namespace MapMarkers.Net
                     m.Item = item;
                     break;
                 case NetmodeID.MultiplayerClient:
-                    if (!AllowPerm(m, MarkerPerms.Edit)) return;
+                    if (!m.AllowPerm(MarkerPerms.Edit)) return;
                     m.Item = item;
                     if (!m.IsServerSide) return;
                     ModPacket packet = CreateSyncPacket(m, SyncMessageType.UpdateItem);
@@ -185,7 +172,7 @@ namespace MapMarkers.Net
                     m.Position = pos;
                     break;
                 case NetmodeID.MultiplayerClient:
-                    if (!AllowPerm(m, MarkerPerms.Edit)) return;
+                    if (!m.AllowPerm(MarkerPerms.Edit)) return;
                     m.Position = pos;
                     if (!m.IsServerSide) return;
                     ModPacket packet = CreateSyncPacket(m, SyncMessageType.UpdatePos);
@@ -205,7 +192,6 @@ namespace MapMarkers.Net
                 {
                     m.ServerData = new ServerMarkerData()
                     {
-                        Id = Guid.NewGuid(),
                         Owner = Main.LocalPlayer.name,
                         PublicPerms = MarkerPerms.None
                     };
@@ -251,7 +237,7 @@ namespace MapMarkers.Net
         }
         public static void Delete(MapMarker m)
         {
-            if (!AllowPerm(m, MarkerPerms.Delete))
+            if (!m.AllowPerm(MarkerPerms.Delete))
                 return;
 
             if (Main.netMode == NetmodeID.MultiplayerClient && m.IsServerSide)
@@ -259,7 +245,7 @@ namespace MapMarkers.Net
                 ModPacket pack = CreateSyncPacket(m, SyncMessageType.Delete);
                 pack.Send();
             }
-            MapSystem.CurrentMarkers.Remove(m);
+            MapSystem.CurrentPlayerWorldData.Markers.Remove(m);
         }
     }
 }

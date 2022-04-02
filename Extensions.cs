@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -21,15 +22,34 @@ namespace MapMarkers
             return false;
         }
 
-        static FieldInfo MapOverlayDrawContext_mapScale = null;
-
-        public static float GetMapScale(this MapOverlayDrawContext context) 
+        public static void MoveInside(this ref Rectangle rect, Rectangle bounds)
         {
-            if (MapOverlayDrawContext_mapScale is null)
-            {
-                MapOverlayDrawContext_mapScale = typeof(MapOverlayDrawContext).GetField("_mapScale", BindingFlags.NonPublic | BindingFlags.Instance);
-            }
-            return (float)MapOverlayDrawContext_mapScale.GetValue(context);
+            if (rect.X < bounds.X)
+                rect.X = bounds.X;
+
+            if (rect.Y < bounds.Y)
+                rect.Y = bounds.Y;
+
+            if (rect.Right > bounds.Right)
+                rect.X = bounds.Right - rect.Width;
+
+            if (rect.Bottom > bounds.Bottom)
+                rect.Y = bounds.Bottom - rect.Height;
+        }
+
+        public static void MoveInside(this ref Vector2 vec, Rectangle bounds)
+        {
+            if (vec.X < bounds.X)
+                vec.X = bounds.X;
+
+            if (vec.Y < bounds.Y)
+                vec.Y = bounds.Y;
+
+            if (vec.X > bounds.Right)
+                vec.X = bounds.Right;
+
+            if (vec.Y > bounds.Bottom)
+                vec.Y = bounds.Bottom;
         }
     }
 }

@@ -129,7 +129,7 @@ namespace MapMarkers
             Cancel.OnClick += (ev, ui) =>
             {
                 if (Marker.BrandNew)
-                    MapSystem.CurrentMarkers.Remove(Marker);
+                    MapSystem.CurrentPlayerWorldData.Markers.Remove(Marker);
                 Marker = null;
                 Terraria.Main.blockInput = false;
             };

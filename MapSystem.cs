@@ -9,14 +9,19 @@ namespace MapMarkers
 {
     public class MapSystem : ModSystem
     {
-        public List<AbstractMarker> CurrentMarkers;
+        public PlayerWorldData CurrentPlayerWorldData;
+
+        public ModKeybind CreateMarkerKeybind;
+
         public MarkerGui MarkerGui;
         public MapRenderer MapRenderer => ModContent.GetInstance<MapRenderer>();
 
-        public Dictionary<int, Dictionary<int, List<AbstractMarker>>> AllMarkers = new();
+        public Dictionary<int, Dictionary<int, PlayerWorldData>> AllPlayerWorldData = new();
 
         public override void Load()
         {
+            CreateMarkerKeybind = KeybindLoader.RegisterKeybind(Mod, "Create Marker", "/");
+
             MarkerGui = new(this);
         }
 
@@ -36,8 +41,6 @@ namespace MapMarkers
         {
             MapConfig conf = ModContent.GetInstance<MapConfig>();
 
-            //CurrentMarkers.Add(new SpawnMarker());
-
             if (Main.netMode == NetmodeID.SinglePlayer)
             {
                 if (conf.AddChestMarkers)
@@ -49,7 +52,7 @@ namespace MapMarkers
 
         internal void AddStatueMarkers()
         {
-            if (CurrentMarkers is null)
+            if (CurrentPlayerWorldData is null)
                 return;
 
             int statues = 0;
@@ -63,7 +66,7 @@ namespace MapMarkers
                     {
                         int item = StatueTileToItem(t);
                         if (item < 0) continue;
-                        CurrentMarkers.Add(new StatueMarker(item, x, y));
+                        CurrentPlayerWorldData.AddMarker(new StatueMarker(item, x, y));
                         statues++;
                     }
                 }
@@ -73,7 +76,7 @@ namespace MapMarkers
         }
         internal void AddChesMarkers()
         {
-            if (CurrentMarkers is null)
+            if (CurrentPlayerWorldData is null)
                 return;
 
             int chests = 0;
@@ -86,7 +89,7 @@ namespace MapMarkers
 
                 if (Chest.IsLocked(chest.x, chest.y))
                 {
-                    CurrentMarkers.Add(new LockedChestMarker(i));
+                    CurrentPlayerWorldData.AddMarker(new LockedChestMarker(i));
                     chests++;
                 }
             }
@@ -97,17 +100,17 @@ namespace MapMarkers
 
         internal void ResetStatueMarkers()
         {
-            if (CurrentMarkers is null)
+            if (CurrentPlayerWorldData is null)
                 return;
 
-            CurrentMarkers.RemoveAll(m => m is StatueMarker);
+            CurrentPlayerWorldData.Markers.RemoveAll(m => m is StatueMarker);
         }
         internal void ResetChestMarkers()
         {
-            if (CurrentMarkers is null)
+            if (CurrentPlayerWorldData is null)
                 return;
 
-            CurrentMarkers.RemoveAll(m => m is LockedChestMarker);
+            CurrentPlayerWorldData.Markers.RemoveAll(m => m is LockedChestMarker);
         }
 
         private static bool IsStatueTile(Tile t)

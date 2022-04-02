@@ -2,6 +2,7 @@
 using MapMarkers.Items;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -24,20 +25,18 @@ namespace MapMarkers
         public static int LocalPlayerTPPotionBank { get; private set; }
         public static int LocalPlayerTPPotionSlot { get; private set; }
 
-        public ModKeybind CreateMarker;
-
-        private Dictionary<int, List<AbstractMarker>> MyMarkers
+        private Dictionary<int, PlayerWorldData> MyWorldData
         {
             get
             {
                 int id = Player.name.GetHashCode();
 
-                if (MapSystem.AllMarkers.ContainsKey(id))
-                    return MapSystem.AllMarkers[id];
+                if (MapSystem.AllPlayerWorldData.ContainsKey(id))
+                    return MapSystem.AllPlayerWorldData[id];
 
-                Dictionary<int, List<AbstractMarker>> markers = new();
-                MapSystem.AllMarkers.Add(id, markers);
-                return markers;
+                Dictionary<int, PlayerWorldData> data = new Dictionary<int, PlayerWorldData>();
+                MapSystem.AllPlayerWorldData.Add(id, data);
+                return data;
             }
         }
 
@@ -81,59 +80,60 @@ namespace MapMarkers
             }
         }
 
-        public override void Load()
-        {
-            CreateMarker = KeybindLoader.RegisterKeybind(Mod, "Create Marker", Keys.B);
-        }
-
         public override void SaveData(TagCompound tag)
         {
-            foreach (KeyValuePair<int, List<AbstractMarker>> world in MyMarkers)
+            foreach (KeyValuePair<int, PlayerWorldData> world in MyWorldData)
             {
-                string key = $"markers_{world.Key}";
-                List<TagCompound> list = world.Value.Where(x => x is MapMarker).Select(x => (x as MapMarker).GetData()).ToList();
-                tag[key] = list;
-
-                //Mod.Logger.DebugFormat("Saved {0} markers into {1}", list.Count, key);
+                tag[$"world_{world.Key}"] = world.Value.Save();
             }
-            //Mod.Logger.DebugFormat("{0} tags total", tag.Count);
         }
 
         public override void LoadData(TagCompound tag)
         {
-            Dictionary<int, List<AbstractMarker>> markers = MyMarkers;
-            markers.Clear();
-
-            //Mod.Logger.DebugFormat("[{0}] Found {1} tags", Player.name, tag.Count);
+            Dictionary<int, PlayerWorldData> data = MyWorldData;
+            data.Clear();
 
             foreach (KeyValuePair<string, object> v in tag)
             {
-                //Mod.Logger.DebugFormat("Found tag {0}", v.Key);
-
                 if (v.Key.StartsWith("markers_"))
                 {
                     int wid = int.Parse(v.Key.Substring(8));
-                    markers.Add(wid, new List<AbstractMarker>());
+
+                    if (!data.TryGetValue(wid, out PlayerWorldData pwd))
+                    {
+                        pwd = new PlayerWorldData();
+                        data.Add(wid, pwd);
+                    }
 
                     foreach (TagCompound d in (IList<TagCompound>)v.Value)
-                        markers[wid].Add(MapMarker.FromData(d));
-                    //Mod.Logger.DebugFormat("Loaded {0} markers for world {1}", markers.Count, wid);
+                        pwd.Markers.Add(MapMarker.FromData(d));
+                }
+
+                else if (v.Key.StartsWith("world_"))
+                {
+                    int wid = int.Parse(v.Key.Substring(6));
+
+                    if (!data.TryGetValue(wid, out PlayerWorldData pwd))
+                    {
+                        pwd = new PlayerWorldData();
+                        data.Add(wid, pwd);
+                    }
+
+                    pwd.Load(v.Value as TagCompound);
                 }
             }
         }
 
         public override void OnEnterWorld(Player player)
         {
-            base.OnEnterWorld(player);
             if (Main.dedServ) return;
-            Dictionary<int, List<AbstractMarker>> markers = MyMarkers;
+            Dictionary<int, PlayerWorldData> data = MyWorldData;
 
-            if (!markers.ContainsKey(Main.worldID))
-                markers.Add(Main.worldID, new List<AbstractMarker>());
+            if (!data.ContainsKey(Main.worldID))
+                data.Add(Main.worldID, new PlayerWorldData());
 
-            MapSystem.CurrentMarkers = markers[Main.worldID];
+            MapSystem.CurrentPlayerWorldData = data[Main.worldID];
 
-            //Mod.Logger.DebugFormat("Entered world {0}", Main.worldID);
             Net.MapClient.RequestMarkers();
 
             MapSystem.AddSpecialMarkers();
@@ -142,7 +142,7 @@ namespace MapMarkers
         public override void PostUpdate()
         {
             if (Main.dedServ) return;
-            if (CreateMarker.JustPressed)
+            if (MapSystem.CreateMarkerKeybind.JustPressed)
             {
                 if (MapSystem.MarkerGui.Marker != null) return;
 
@@ -156,9 +156,67 @@ namespace MapMarkers
 
                 Main.mapFullscreen = false;
                 m.BrandNew = true;
-                MapSystem.CurrentMarkers.Add(m);
+                MapSystem.CurrentPlayerWorldData.AddMarker(m);
                 MapSystem.MarkerGui.SetMarker(m);
             }
         }
+    }
+    public class PlayerWorldData
+    {
+        const string MarkersTagKey = "markers";
+        const string PinnedTagKey = "pinned";
+
+        public List<AbstractMarker> Markers = new List<AbstractMarker>();
+        public HashSet<Guid> Pinned = new HashSet<Guid>();
+
+        public Utilities.ShortGuids ShortGuids = new Utilities.ShortGuids();
+
+        public void AddMarker(AbstractMarker m)
+        {
+            Markers.RemoveAll(x => x.Id == m.Id);
+
+            Markers.Add(m);
+            ShortGuids.AddToDictionary(m.Id);
+        }
+
+        public void AddMarkers(IEnumerable<AbstractMarker> m)
+        {
+            foreach (AbstractMarker am in m)
+                AddMarker(am);
+        }
+
+        public void Load(TagCompound tag)
+        {
+            if (tag.ContainsKey(MarkersTagKey))
+            {
+                foreach (TagCompound m in tag.GetList<TagCompound>(MarkersTagKey))
+                {
+                    Markers.Add(MapMarker.FromData(m));
+                }
+            }
+            if (tag.ContainsKey(PinnedTagKey))
+            {
+                Pinned.UnionWith(tag.GetList<string>(PinnedTagKey).Select(s => Guid.Parse(s)));
+            }
+        }
+
+        public TagCompound Save()
+        {
+            HashSet<Guid> existingMarkers = new HashSet<Guid>(Markers.Select(m => m.Id));
+
+            return new TagCompound()
+            {
+                [MarkersTagKey] = Markers.Where(m => m is MapMarker mm && !mm.IsServerSide).Select(x => (x as MapMarker).GetData()).ToList(),
+                [PinnedTagKey] = Pinned.Where(p => existingMarkers.Contains(p)).Select(p => p.ToString()).ToList()
+            };
+        }
+
+        public void Clear()
+        {
+            Markers.Clear();
+            Pinned.Clear();
+            ShortGuids.Clear();
+        }
+
     }
 }
