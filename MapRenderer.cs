@@ -1,12 +1,9 @@
 ﻿using MapMarkers.Items;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using ReLogic.Content;
 using System;
 using System.Text;
 using Terraria;
-using Terraria.GameContent;
 using Terraria.GameInput;
 using Terraria.Localization;
 using Terraria.Map;
@@ -25,7 +22,7 @@ namespace MapMarkers
 
         internal static bool PressingCtrl => Main.keyState.IsKeyDown(Keys.LeftControl) || Main.keyState.IsKeyDown(Keys.RightControl);
 
-        private string CannotTeleport = "[[c/00ff00:Map Markers]] [c/ff0000:" + Language.GetTextValue("Mods.MapMarkers.Chat.NotEnoughTPSpace") +"]";
+        private string CannotTeleport = "[[c/00ff00:Map Markers]] [c/ff0000:" + Language.GetTextValue("Mods.MapMarkers.Chat.NotEnoughTPSpace") + "]";
 
         private MapSystem MapSystem => ModContent.GetInstance<MapSystem>();
 
@@ -151,24 +148,25 @@ namespace MapMarkers
                     mouseText.Append(mm.ServerData.Owner);
                 }
 
-                if (edit || delete)
+                if (delete)
                 {
                     addShiftForMore = true;
                     if (shift)
                     {
-                        if (delete)
-                        {
-                            mouseText.AppendLine();
-                            mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Delete"));
-                        }
+                        mouseText.AppendLine();
+                        mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Delete"));
+                    }
+                }
 
-                        if (edit)
-                        {
-                            mouseText.AppendLine();
-                            mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Move"));
-                            mouseText.AppendLine();
-                            mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Edit"));
-                        }
+                if (edit)
+                {
+                    addShiftForMore = true;
+                    if (shift)
+                    {
+                        mouseText.AppendLine();
+                        mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Move"));
+                        mouseText.AppendLine();
+                        mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Edit"));
                     }
                 }
 
