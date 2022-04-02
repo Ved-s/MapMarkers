@@ -20,7 +20,7 @@ namespace MapMarkers
 
         internal static bool PressingCtrl => Main.keyState.IsKeyDown(Keys.LeftControl) || Main.keyState.IsKeyDown(Keys.RightControl);
 
-        private const string CannotTeleport = "[[c/00ff00:Map Markers]] [c/ff0000:Not enough space to teleport]";
+        private string CannotTeleport = "[[c/00ff00:Map Markers]] [c/ff0000:" + Language.GetTextValue("Mods.MapMarkers.Chat.NotEnoughTPSpace") + "]";
 
         private MapMarkers MapMarkers;
 
@@ -101,7 +101,7 @@ namespace MapMarkers
                     if (pinned)
                     {
                         markerText.AppendLine();
-                        markerText.Append("Pinned");
+                        markerText.Append(Language.GetTextValue("Mods.MapMarkers.Marker.Pinned"));
                     }
 
                     if (m.ShowPos)
@@ -177,7 +177,8 @@ namespace MapMarkers
                 if (mm.IsServerSide)
                 {
                     mouseText.AppendLine();
-                    mouseText.Append("Owner: ");
+                    mouseText.Append(Language.GetTextValue("Mods.MapMarkers.Marker.Owner"));
+                    mouseText.Append(" ");
                     mouseText.Append(mm.ServerData.Owner);
                 }
 
@@ -187,7 +188,7 @@ namespace MapMarkers
                     if (shift)
                     {
                         mouseText.AppendLine();
-                        mouseText.Append("[Del] Delete");
+                        mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Delete"));
                     }
                 }
 
@@ -197,9 +198,9 @@ namespace MapMarkers
                     if (shift)
                     {
                         mouseText.AppendLine();
-                        mouseText.Append("[Middle Click] Move");
+                        mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Move"));
                         mouseText.AppendLine();
-                        mouseText.Append("[Right Click] Edit");
+                        mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Edit"));
                     }
                 }
 
@@ -236,7 +237,7 @@ namespace MapMarkers
                 if (shift)
                 {
                     mouseText.AppendLine();
-                    mouseText.Append("[Ctrl+Right Click] Teleport");
+                    mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Teleport"));
                 }
 
                 if (RightPressed && ctrl)
@@ -264,10 +265,9 @@ namespace MapMarkers
                     bool pin = MapMarkers.CurrentPlayerWorldData.Pinned.Contains(m.Id);
 
                     mouseText.AppendLine();
-                    mouseText.Append("[Shift+Right Click] ");
 
-                    if (pin) mouseText.Append("Unpin");
-                    else mouseText.Append("Pin");
+                    if (pin) mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Unpin"));
+                    else mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.Pin"));
 
                     if (RightPressed)
                     {
@@ -283,7 +283,7 @@ namespace MapMarkers
             if (!shift && addShiftForMore)
             {
                 mouseText.AppendLine();
-                mouseText.Append("[Shift] More");
+                mouseText.Append(Language.GetTextValue("Mods.MapMarkers.MarkerKeys.More"));
             }
         }
 

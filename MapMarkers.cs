@@ -1,12 +1,17 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
+using Terraria.ModLoader.Core;
 using Terraria.UI;
+using Hjson;
+using Terraria.Localization;
 
 namespace MapMarkers
 {
@@ -23,12 +28,69 @@ namespace MapMarkers
 
         public override void Load()
         {
+            LoadTranslations();
+
             CreateMarkerKeybind = RegisterHotKey("Create Marker", "/");
 
             MarkerGui = new MarkerGui(this);
             Renderer = new MapRenderer(this);
 
             MapPatches.Apply();
+        }
+
+        private void LoadTranslations() 
+        {
+            TmodFile tmodFile = typeof(Mod).GetProperty("File", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(this) as TmodFile;
+
+            Dictionary<string, ModTranslation> dictionary = new Dictionary<string, ModTranslation>();
+
+            foreach (TmodFile.FileEntry fe in tmodFile.Where(e => Path.GetExtension(e.Name) == ".hjson"))
+            {
+                StreamReader sr = new StreamReader(tmodFile.GetStream(fe));
+                string content = sr.ReadToEnd();
+                sr.Close();
+
+                int culture = GameCulture.FromName(Path.GetFileNameWithoutExtension(fe.Name)).LegacyId;
+
+                RecursivelyLoadTranslations(HjsonValue.Parse(content), culture, "", dictionary);
+            }
+
+            foreach (ModTranslation mt in dictionary.Values)
+                AddTranslation(mt);
+                
+        }
+
+        private void RecursivelyLoadTranslations(JsonValue value, int culture, string path, Dictionary<string, ModTranslation> dictionary) 
+        {
+            if (value is JsonObject obj)
+            {
+                foreach (var v in obj)
+                {
+                    string objpath = (path.Length > 0 ? path + "." : "") + v.Key;
+                    RecursivelyLoadTranslations(v.Value, culture, objpath, dictionary);
+                }
+            }
+            else
+            {
+                string v = value.Qstr();
+                ModTranslation mt = AddModTranslation(dictionary, path);
+                mt.AddTranslation(culture, v);
+            }
+        }
+
+        private ModTranslation AddModTranslation(Dictionary<string, ModTranslation> dictionary, string key) 
+        {
+            ModTranslation mt;
+            if (!dictionary.TryGetValue(key, out mt))
+            {
+                Logger.InfoFormat("Adding key: {0}", key);
+
+                mt = (ModTranslation)Activator.CreateInstance(typeof(ModTranslation), BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { key, false }, null);
+                dictionary.Add(key, mt);
+            };
+            return mt;
+
+            
         }
 
         public override void Unload()

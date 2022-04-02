@@ -14,14 +14,7 @@ namespace MapMarkers.Buffs
 
         public override void SetDefaults()
         {
-            DisplayName.SetDefault("Teleportation Disability");
-
             Main.debuff[Type] = true;
-        }
-
-        public override void ModifyBuffTip(ref string tip, ref int rare)
-        {
-            tip = "You feel sick since using Marker Teleportation Potion";
         }
     }
 }

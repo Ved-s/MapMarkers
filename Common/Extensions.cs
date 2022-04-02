@@ -2,8 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Terraria.Map;
 using Terraria.ModLoader.IO;
 
 namespace MapMarkers
@@ -20,7 +22,7 @@ namespace MapMarkers
             return false;
         }
 
-        public static void MoveInside(this ref Rectangle rect, Rectangle bounds) 
+        public static void MoveInside(this ref Rectangle rect, Rectangle bounds)
         {
             if (rect.X < bounds.X)
                 rect.X = bounds.X;
