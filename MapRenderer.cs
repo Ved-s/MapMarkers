@@ -56,6 +56,7 @@ namespace MapMarkers
             if (MapSystem.CurrentPlayerWorldData is null) return;
 
             bool hovered = false;
+            StopDrawingAfterHover = false;
 
             StringBuilder markerText = new StringBuilder();
             Vector2 markerTextPos = default;
