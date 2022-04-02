@@ -12,14 +12,14 @@ namespace MapMarkers
 {
     public class MapMarkers : Mod
     {
-        public MapPlayer.PlayerWorldData CurrentPlayerWorldData;
+        public PlayerWorldData CurrentPlayerWorldData;
 
         public ModHotKey CreateMarkerKeybind;
 
         public MarkerGui MarkerGui;
         public MapRenderer Renderer;
 
-        public Dictionary<int, Dictionary<int, MapPlayer.PlayerWorldData>> AllPlayerWorldData = new Dictionary<int, Dictionary<int, MapPlayer.PlayerWorldData>>();
+        public Dictionary<int, Dictionary<int, PlayerWorldData>> AllPlayerWorldData = new Dictionary<int, Dictionary<int, PlayerWorldData>>();
 
         public override void Load()
         {
@@ -61,8 +61,11 @@ namespace MapMarkers
 
             CurrentPlayerWorldData.AddMarker(new SpawnMarker());
 
-            if (conf.AddChestMarkers) AddChesMarkers();
-            if (conf.AddStatueMarkers) AddStatueMarkers();
+            if (Main.netMode == NetmodeID.SinglePlayer)
+            {
+                if (conf.AddChestMarkers) AddChesMarkers();
+                if (conf.AddStatueMarkers) AddStatueMarkers();
+            }
         }
 
         internal void AddStatueMarkers()

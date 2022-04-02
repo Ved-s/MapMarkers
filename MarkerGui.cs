@@ -18,7 +18,6 @@ namespace MapMarkers
         UIPanel Main;
         UIFocusInputTextField Name, Search;
 
-        UIAutoScaleTextTextPanel<string> Header;
         UIAutoScaleTextTextPanel<string> Ok, Cancel, Reload, Global, Edit, Delete;
 
         List<Item> Items = new List<Item>();
@@ -39,23 +38,66 @@ namespace MapMarkers
             UI.SetState(new UIState());
         }
 
-        private Color Inactive = new Color(63, 82, 151) * 0.7f;
-        private Color InactiveHover = new Color(63, 82, 151);
-        private Color Active = new Color(0, 0xDD, 0);
-        private Color ActiveHover = new Color(0, 0xFF, 0);
+        private Color Inactive = new Color(64, 64, 100) * 0.9f;
+        private Color InactiveHover = new Color(72, 72, 110) * 0.9f;
+
+        private Color ActiveTextColor = new Color(100, 180, 100);
 
         internal void InitUI()
         {
             UI.CurrentState.RemoveAllChildren();
             UI.CurrentState.Append(Main = new UIPanel());
 
-            Main.Width = new StyleDimension(300, 0);
-            Main.Height = new StyleDimension(450, 0);
-            Main.Top = new StyleDimension(Terraria.Main.screenHeight / 2 - 250, 0);
-            Main.Left = new StyleDimension(Terraria.Main.screenWidth / 2 - 150, 0);
+            Main.Width = new StyleDimension(620, 0);
+            Main.Height = new StyleDimension(340, 0);
+            Main.Top = new StyleDimension((Terraria.Main.screenHeight - Main.Height.Pixels) / 2, 0);
+            Main.Left = new StyleDimension((Terraria.Main.screenWidth - Main.Width.Pixels) / 2, 0);
+            Main.BackgroundColor = new Color(32, 32, 48) * .7f;
 
+            Main.Append(Name = new UIFocusInputTextField("Marker name"));
+            Name.Top.Set(20, 0);
+            Name.Left.Set(20, 0);
+            Name.Width.Set(-40, 0.5f);
+            Name.Height.Set(30, 0);
+            Name.BackgroundColor = InactiveHover;
+
+            Main.Append(Search = new UIFocusInputTextField("Search items"));
+            Search.Top.Set(20, 0);
+            Search.Left.Set(-203, 1);
+            Search.Width.Set(189, 0);
+            Search.Height.Set(30, 0);
+            Search.BackgroundColor = InactiveHover;
+
+            Main.Append(Ok = new UIAutoScaleTextTextPanel<string>("Ok"));
+            Ok.Top.Set(-54, 1);
+            Ok.Left.Set(20, 0);
+            Ok.Width.Set(100, 0);
+            Ok.Height.Set(40, 0);
+            Ok.BackgroundColor = Inactive;
+
+            Main.Append(Cancel = new UIAutoScaleTextTextPanel<string>("Cancel"));
+            Cancel.Top.Set(-54, 1);
+            Cancel.Left.Set(-120, 0.5f);
+            Cancel.Width.Set(100, 0);
+            Cancel.Height.Set(40, 0);
+            Cancel.BackgroundColor = Inactive;
+#if DEBUG
+            UI.CurrentState.Append(Reload = new UIAutoScaleTextTextPanel<string>("Reload UI"));
+            Reload.Top.Set(Main.Top.Pixels - 32, 0);
+            Reload.Left.Set(Main.Left.Pixels + Main.Width.Pixels - 100, 0);
+            Reload.Width.Set(100, 0);
+            Reload.Height.Set(30, 0);
+            Reload.BackgroundColor = Color.Yellow;
+            Reload.OnClick += (ev, ui) =>
+            {
+                InitUI();
+            };
+#endif
             Main.OnClick += (ev, ui) =>
             {
+                if (Marker is null) 
+                    return;
+
                 foreach (Item i in Items)
                 {
                     Rectangle rect = new Rectangle((int)i.position.X, (int)i.position.Y, Terraria.Main.inventoryBackTexture.Width, Terraria.Main.inventoryBackTexture.Height);
@@ -66,64 +108,20 @@ namespace MapMarkers
                 }
             };
 
-            Main.Append(Header = new UIAutoScaleTextTextPanel<string>("Edit marker"));
-            Header.Top.Set(-30, 0);
-            Header.Left.Set(60, 0);
-            Header.Width.Set(160, 0);
-            Header.Height.Set(40, 0);
-            Header.TextScale = 2f;
-            Header.BackgroundColor = new Color(63, 82, 151);
-
-            Main.Append(Name = new UIFocusInputTextField("Marker name"));
-            Name.Top.Set(20, 0);
-            Name.Left.Set(20, 0);
-            Name.Width.Set(-40, 1);
-            Name.Height.Set(30, 0);
             Name.OnTextChange += (s, e) =>
             {
                 Net.MapClient.SetName(Marker, Name.CurrentString);
             };
-
-            Main.Append(Search = new UIFocusInputTextField("Search items"));
-            Search.Top.Set(130, 0);
-            Search.Left.Set(70, 0);
-            Search.Width.Set(185, 0);
-            Search.Height.Set(30, 0);
             Search.OnTextChange += (s, e) =>
             {
                 ReloadItems();
             };
-
-            UI.CurrentState.Append(Ok = new UIAutoScaleTextTextPanel<string>("Ok"));
-            Ok.Top.Set(Main.Top.Pixels + 465, 0);
-            Ok.Left.Set(Main.Left.Pixels, 0);
-            Ok.Width.Set(100, 0);
-            Ok.Height.Set(40, 0);
             Ok.OnClick += (ev, ui) =>
             {
                 Marker.BrandNew = false;
                 Marker = null;
                 Terraria.Main.blockInput = false;
             };
-
-#if DEBUG
-            UI.CurrentState.Append(Reload = new UIAutoScaleTextTextPanel<string>("Reload UI"));
-            Reload.Top.Set(Main.Top.Pixels + 420, 0);
-            Reload.Left.Set(Main.Left.Pixels + 320, 0);
-            Reload.Width.Set(100, 0);
-            Reload.Height.Set(30, 0);
-            Reload.BackgroundColor = Color.Yellow;
-            Reload.OnClick += (ev, ui) =>
-            {
-                InitUI();
-            };
-#endif
-
-            UI.CurrentState.Append(Cancel = new UIAutoScaleTextTextPanel<string>("Cancel"));
-            Cancel.Top.Set(Main.Top.Pixels + 465, 0);
-            Cancel.Left.Set(Main.Left.Pixels + 200, 0);
-            Cancel.Width.Set(100, 0);
-            Cancel.Height.Set(40, 0);
             Cancel.OnClick += (ev, ui) =>
             {
                 if (Marker.BrandNew)
@@ -151,29 +149,41 @@ namespace MapMarkers
                 && Marker.ServerData.Owner != Terraria.Main.LocalPlayer.name) return;
 
             Main.Append(Global = new UIAutoScaleTextTextPanel<string>("Global"));
-            Global.Top.Set(60, 0);
+            Global.Top.Set(80, 0);
             Global.Left.Set(20, 0);
             Global.Width.Set(100, 0);
             Global.Height.Set(25, 0);
-            Global.BackgroundColor = Marker.IsServerSide ? Active : Inactive;
+            Global.BackgroundColor = Inactive;
+            Global.TextColor = Marker.IsServerSide ? ActiveTextColor : Color.White; 
             Global.OnClick += (ev, ui) =>
             {
                 Marker.BrandNew = false;
                 Net.MapClient.SetGlobal(Marker, !Marker.IsServerSide);
                 InitNetUI();
             };
-            Hover(Global, Marker.IsServerSide ? ActiveHover : InactiveHover, Marker.IsServerSide ? Active : Inactive);
+            Hover(Global);
 
             if (!Marker.IsServerSide) return;
 
 
             bool edit = Marker.ServerData.PublicPerms.HasFlag(MarkerPerms.Edit);
             Main.Append(Edit = new UIAutoScaleTextTextPanel<string>("Public edit"));
-            Edit.Top.Set(60, 0);
+            Edit.Top.Set(80, 0);
             Edit.Left.Set(130, 0);
-            Edit.Width.Set(127, 0);
+            Edit.Width.Set(-150, 0.5f);
             Edit.Height.Set(25, 0);
-            Edit.BackgroundColor = edit ? Active : Inactive;
+            Edit.BackgroundColor = Inactive;
+            Edit.TextColor = edit ? ActiveTextColor : Color.White;
+
+            bool delete = Marker.ServerData.PublicPerms.HasFlag(MarkerPerms.Delete);
+            Main.Append(Delete = new UIAutoScaleTextTextPanel<string>("Public delete"));
+            Delete.Top.Set(110, 0);
+            Delete.Left.Set(130, 0);
+            Delete.Width.Set(-150, 0.5f);
+            Delete.Height.Set(25, 0);
+            Delete.BackgroundColor = Inactive;
+            Delete.TextColor = delete ? ActiveTextColor : Color.White;
+
             Edit.OnClick += (ev, ui) =>
             {
                 MarkerPerms perms = Marker.ServerData.PublicPerms;
@@ -182,15 +192,6 @@ namespace MapMarkers
                 Net.MapClient.SetPublicPerms(Marker, perms);
                 InitNetUI();
             };
-            Hover(Edit, edit ? ActiveHover : InactiveHover, edit ? Active : Inactive);
-
-            bool delete = Marker.ServerData.PublicPerms.HasFlag(MarkerPerms.Delete);
-            Main.Append(Delete = new UIAutoScaleTextTextPanel<string>("Public delete"));
-            Delete.Top.Set(90, 0);
-            Delete.Left.Set(130, 0);
-            Delete.Width.Set(127, 0);
-            Delete.Height.Set(25, 0);
-            Delete.BackgroundColor = delete ? Active : Inactive;
             Delete.OnClick += (ev, ui) =>
             {
                 MarkerPerms perms = Marker.ServerData.PublicPerms;
@@ -199,7 +200,9 @@ namespace MapMarkers
                 Net.MapClient.SetPublicPerms(Marker, perms);
                 InitNetUI();
             };
-            Hover(Delete, delete ? ActiveHover : InactiveHover, delete ? Active : Inactive);
+
+            Hover(Edit);
+            Hover(Delete);
 
         }
 
@@ -250,16 +253,11 @@ namespace MapMarkers
                 return;
             }
 
-            if (Main == null) InitUI();
+            if (Main == null) 
+                InitUI();
 
-            Main.Top = new StyleDimension(Terraria.Main.screenHeight / Terraria.Main.UIScale / 2 - 250, 0);
-            Main.Left = new StyleDimension(Terraria.Main.screenWidth / Terraria.Main.UIScale / 2 - 150, 0);
-
-            Ok.Top.Set(Main.Top.Pixels + 465, 0);
-            Ok.Left.Set(Main.Left.Pixels, 0);
-
-            Cancel.Top.Set(Main.Top.Pixels + 465, 0);
-            Cancel.Left.Set(Main.Left.Pixels + 200, 0);
+            Main.Top = new StyleDimension(Terraria.Main.screenHeight / Terraria.Main.UIScale / 2 - Main.Height.Pixels / 2, 0);
+            Main.Left = new StyleDimension(Terraria.Main.screenWidth / Terraria.Main.UIScale / 2 - Main.Width.Pixels / 2, 0);
 
             Terraria.Main.blockInput = true;
 
@@ -274,6 +272,11 @@ namespace MapMarkers
 
         internal bool Draw()
         {
+            const string Header = "Edit marker";
+            const string GlobalHint = "Makes this marker visible to\nother players";
+            const string EditHint = "If enabled, other players can\nedit name and item";
+            const string DeleteHint = "If enabled, other players can\ndelete this marker";
+
             if (Marker != null)
             {
                 if (Main == null) InitUI();
@@ -282,11 +285,25 @@ namespace MapMarkers
 
                 CalculatedStyle cs =  Main.GetDimensions();
 
+                Vector2 headerSize = Terraria.Main.fontMouseText.MeasureString(Header) * 1.3f;
+
+                Vector2 headerPos = new Vector2(cs.X, cs.Y);
+                headerPos.X += cs.Width / 2 - headerSize.X / 2;
+                headerPos.Y -= headerSize.Y;
+
+                Utils.DrawBorderString(Terraria.Main.spriteBatch, Header, headerPos, Color.White, 1.3f);
+
+                Vector2 hintPos = new Vector2(cs.X + 30, cs.Y + 160);
+
+                if (Global?.IsMouseHovering ?? false) Utils.DrawBorderString(Terraria.Main.spriteBatch, GlobalHint, hintPos, Color.White);
+                else if (Edit?.IsMouseHovering ?? false) Utils.DrawBorderString(Terraria.Main.spriteBatch, EditHint, hintPos, Color.White);
+                else if (Delete?.IsMouseHovering ?? false) Utils.DrawBorderString(Terraria.Main.spriteBatch, DeleteHint, hintPos, Color.White);
+
                 float scale = Terraria.Main.inventoryScale;
                 Terraria.Main.inventoryScale = 0.8f;
 
                 Vector2 pos = new Vector2(cs.X, cs.Y);
-                pos += new Vector2(32, 134);
+                pos += new Vector2(cs.Width - 264, 26);
                 ItemSlot.Draw(Terraria.Main.spriteBatch, ref Marker.Item, ItemSlot.Context.InventoryCoin, pos);
 
                 for (int i = 0; i < Items.Count; i++)

@@ -26,7 +26,7 @@ namespace MapMarkers
 
         private Dictionary<int, PlayerWorldData> MyWorldData 
         {
-            get 
+            get
             {
                 int id = player.name.GetHashCode();
 
@@ -163,62 +163,64 @@ namespace MapMarkers
                 MapMarkers.MarkerGui.SetMarker(m);
             }
         }
+    }
 
-        public class PlayerWorldData
+    public class PlayerWorldData
+    {
+        const string MarkersTagKey = "markers";
+        const string PinnedTagKey = "pinned";
+
+        public List<AbstractMarker> Markers = new List<AbstractMarker>();
+        public HashSet<Guid> Pinned = new HashSet<Guid>();
+
+        public Utilities.ShortGuids ShortGuids = new Utilities.ShortGuids();
+
+        public void AddMarker(AbstractMarker m)
         {
-            const string MarkersTagKey = "markers";
-            const string PinnedTagKey = "pinned";
+            Markers.RemoveAll(x => x.Id == m.Id);
 
-            public List<AbstractMarker> Markers = new List<AbstractMarker>();
-            public HashSet<Guid> Pinned = new HashSet<Guid>();
-
-            public Utilities.ShortGuids ShortGuids = new Utilities.ShortGuids();
-
-            public void AddMarker(AbstractMarker m) 
-            {
-                Markers.Add(m);
-                ShortGuids.AddToDictionary(m.Id);
-            }
-
-            public void AddMarkers(IEnumerable<AbstractMarker> m)
-            {
-                foreach (AbstractMarker am in m)
-                    AddMarker(am);
-            }
-
-            public void Load(TagCompound tag)
-            {
-                if (tag.ContainsKey(MarkersTagKey))
-                {
-                    foreach (TagCompound m in tag.GetList<TagCompound>(MarkersTagKey)) 
-                    {
-                        Markers.Add(MapMarker.FromData(m));
-                    }
-                }
-                if (tag.ContainsKey(PinnedTagKey))
-                {
-                    Pinned.UnionWith(tag.GetList<string>(PinnedTagKey).Select(s => Guid.Parse(s)));    
-                }
-            }
-
-            public TagCompound Save()
-            {
-                HashSet<Guid> existingMarkers = new HashSet<Guid>(Markers.Select(m => m.Id));
-
-                return new TagCompound()
-                {
-                    [MarkersTagKey] = Markers.Where(m => m is MapMarker mm && !mm.IsServerSide).Select(x => (x as MapMarker).GetData()).ToList(),
-                    [PinnedTagKey] = Pinned.Where(p => existingMarkers.Contains(p)).Select(p => p.ToString()).ToList()
-                };
-            }
-
-            public void Clear()
-            {
-                Markers.Clear();
-                Pinned.Clear();
-                ShortGuids.Clear();
-            }
-
+            Markers.Add(m);
+            ShortGuids.AddToDictionary(m.Id);
         }
+
+        public void AddMarkers(IEnumerable<AbstractMarker> m)
+        {
+            foreach (AbstractMarker am in m)
+                AddMarker(am);
+        }
+
+        public void Load(TagCompound tag)
+        {
+            if (tag.ContainsKey(MarkersTagKey))
+            {
+                foreach (TagCompound m in tag.GetList<TagCompound>(MarkersTagKey))
+                {
+                    Markers.Add(MapMarker.FromData(m));
+                }
+            }
+            if (tag.ContainsKey(PinnedTagKey))
+            {
+                Pinned.UnionWith(tag.GetList<string>(PinnedTagKey).Select(s => Guid.Parse(s)));
+            }
+        }
+
+        public TagCompound Save()
+        {
+            HashSet<Guid> existingMarkers = new HashSet<Guid>(Markers.Select(m => m.Id));
+
+            return new TagCompound()
+            {
+                [MarkersTagKey] = Markers.Where(m => m is MapMarker mm && !mm.IsServerSide).Select(x => (x as MapMarker).GetData()).ToList(),
+                [PinnedTagKey] = Pinned.Where(p => existingMarkers.Contains(p)).Select(p => p.ToString()).ToList()
+            };
+        }
+
+        public void Clear()
+        {
+            Markers.Clear();
+            Pinned.Clear();
+            ShortGuids.Clear();
+        }
+
     }
 }
