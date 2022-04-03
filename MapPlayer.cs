@@ -139,7 +139,8 @@ namespace MapMarkers
 
             Net.MapClient.RequestMarkers();
 
-            MapMarkers.AddSpecialMarkers();
+            if (Main.netMode == NetmodeID.SinglePlayer)
+                MapMarkers.AddSpecialMarkers();
         }
 
         public override void PostUpdate()

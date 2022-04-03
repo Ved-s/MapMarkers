@@ -6,7 +6,6 @@ using System.Text;
 using Terraria;
 using Terraria.ID;
 using Terraria.Localization;
-using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
 namespace MapMarkers
@@ -49,6 +48,8 @@ namespace MapMarkers
         public abstract void Draw(Vector2 screenPos);
         public virtual void Hover(StringBuilder mouseText) { }
 
+        public virtual bool CheckRemove() { return false; }
+
         protected void RegenerateDeterministicGuid()
         {
             StringBuilder builder = new StringBuilder();
@@ -73,7 +74,7 @@ namespace MapMarkers
 
     public class StatueMarker : AbstractMarker
     {
-        private int Item;
+        public int Item { get; private set; }
 
         protected override bool UseDeterministicGuid => true;
         public override float MinZoom => 1f;
@@ -88,14 +89,15 @@ namespace MapMarkers
             Position = new Point(x + 1, y + 2);
         }
 
+        public override bool CheckRemove()
+        {
+            if (Main.tile[Position.X, Position.Y] is null)
+                return false;
+            return Main.tile[Position.X, Position.Y].type != TileID.Statues;
+        }
+
         public override void Draw(Vector2 screenPos)
         {
-            if (Main.tile[Position.X, Position.Y].type != TileID.Statues)
-            {
-                ModContent.GetInstance<MapMarkers>().CurrentPlayerWorldData.Markers.Remove(this);
-                return;
-            }
-
             screenPos.Y -= 8;
             Main.spriteBatch.Draw(Main.itemTexture[Item], screenPos, Color.White * MapHelper.MapAlpha);
         }
@@ -157,37 +159,50 @@ namespace MapMarkers
             }
         }
 
-        private int Chest;
+        public int Chest { get; private set; }
+        public int Item  { get; private set; }
 
-        public LockedChestMarker(int chest)
+        public LockedChestMarker(int chest, int? item = null)
         {
             Chest = chest;
             Chest ch = Main.chest[Chest];
+
+            Item = item ?? GetItemFromChestTile(ch);
         }
 
-        public override Vector2 Size => new Vector2(32, 32);
+        public override Vector2 Size => Main.itemTexture[Item].Size();
+
+        public override bool CheckRemove()
+        {
+            return !Terraria.Chest.isLocked(Position.X, Position.Y);
+        }
 
         public override void Draw(Vector2 screenPos)
         {
-            if (!Terraria.Chest.isLocked(Position.X, Position.Y))
-            {
-                ModContent.GetInstance<MapMarkers>().CurrentPlayerWorldData.Markers.Remove(this);
-                return;
-            }
+            Main.spriteBatch.Draw(Main.itemTexture[Item], screenPos, Color.White * MapHelper.MapAlpha);
 
-            Chest ch = Main.chest[Chest];
-            if (Main.tileTexture[Main.tile[ch.x, ch.y].type] is null) return;
+            //Chest ch = Main.chest[Chest];
+            //if (Main.tileTexture[Main.tile[ch.x, ch.y].type] is null) return;
+            //
+            //for (int x = 0; x < 2; x++)
+            //    for (int y = 0; y < 2; y++)
+            //    {
+            //        Tile t = Main.tile[ch.x + x, ch.y + y];
+            //
+            //        Vector2 pos = screenPos + new Vector2(x * 16, y * 16);
+            //        Rectangle source = new Rectangle(t.frameX, t.frameY, 16, 16);
+            //
+            //        Main.spriteBatch.Draw(Main.tileTexture[t.type], pos, source, Color.White * MapHelper.MapAlpha);
+            //    }
+        }
 
-            for (int x = 0; x < 2; x++)
-                for (int y = 0; y < 2; y++)
-                {
-                    Tile t = Main.tile[ch.x + x, ch.y + y];
+        private int GetItemFromChestTile(Chest ch)
+        {
+            int chestType = Main.tile[ch.x, ch.y].frameX / 36;
+            if (Main.tile[ch.x, ch.y].type == 467)
+                return Terraria.Chest.chestItemSpawn2[chestType];
 
-                    Vector2 pos = screenPos + new Vector2(x * 16, y * 16);
-                    Rectangle source = new Rectangle(t.frameX, t.frameY, 16, 16);
-
-                    Main.spriteBatch.Draw(Main.tileTexture[t.type], pos, source, Color.White * MapHelper.MapAlpha);
-                }
+            return Terraria.Chest.chestItemSpawn[chestType];
         }
     }
     public class SpawnMarker : AbstractMarker

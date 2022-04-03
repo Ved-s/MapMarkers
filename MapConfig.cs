@@ -5,6 +5,8 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Terraria;
+using Terraria.ID;
 using Terraria.ModLoader.Config;
 
 namespace MapMarkers
@@ -39,16 +41,29 @@ namespace MapMarkers
         {
             MapMarkers m = mod as MapMarkers;
 
+            if (Main.netMode == NetmodeID.MultiplayerClient)
+            {
+                Net.MapClient.RequestSpecial(AddStatueMarkers && !_statuePrev);
+            }
+
             if (_chestPrev != AddChestMarkers) 
             {
-                if (AddChestMarkers) m.AddChesMarkers();
+                if (AddChestMarkers)
+                {
+                    if (Main.netMode == NetmodeID.SinglePlayer)
+                        m.AddChestMarkers();
+                }
                 else m.ResetChestMarkers();
                 _chestPrev = AddChestMarkers;
             }
 
             if (_statuePrev != AddStatueMarkers)
             {
-                if (AddStatueMarkers) m.AddStatueMarkers();
+                if (AddStatueMarkers)
+                {
+                    if (Main.netMode == NetmodeID.SinglePlayer)
+                        m.AddStatueMarkers();
+                }
                 else m.ResetStatueMarkers();
                 _statuePrev = AddStatueMarkers;
             }

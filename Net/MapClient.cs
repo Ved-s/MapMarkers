@@ -32,6 +32,21 @@ namespace MapMarkers.Net
                         Mod.CurrentPlayerWorldData.AddMarker(m);
                     }
                     break;
+
+                case PacketMessageType.RequestSpecial:
+                    ushort c = reader.ReadUInt16();
+                    Mod.Logger.InfoFormat("Receiving {0} special markers", c);
+                    for (ushort i = 0; i < c; i++) 
+                    {
+                        byte type = reader.ReadByte();
+                        switch (type)
+                        {
+                            case 0:
+                                Mod.CurrentPlayerWorldData.AddMarker(new StatueMarker(reader.ReadInt32(), reader.ReadInt32() - 1, reader.ReadInt32() - 2));
+                                break;
+                        }
+                    }
+                    break;
             }
         }
 
@@ -121,8 +136,28 @@ namespace MapMarkers.Net
                 ModPacket packet = Mod.GetPacket();
                 packet.Write((byte)PacketMessageType.RequestMarkers);
                 packet.Send();
+
+                MapConfig conf = ModContent.GetInstance<MapConfig>();
+                RequestSpecial(conf.AddStatueMarkers);
             }
             else Mod.CurrentPlayerWorldData.AddMarkers(ModContent.GetInstance<MapServer>().Markers);
+        }
+
+        public static void RequestSpecial(bool statues) 
+        {
+            if (!statues) return;
+
+            if (Main.netMode == NetmodeID.MultiplayerClient)
+            {
+                ModPacket packet = Mod.GetPacket();
+                packet.Write((byte)PacketMessageType.RequestSpecial);
+
+                BitsByte b = new BitsByte();
+                b[0] = statues;
+
+                packet.Write(b);
+                packet.Send();
+            }
         }
 
         public static void SetName(MapMarker m, string name)

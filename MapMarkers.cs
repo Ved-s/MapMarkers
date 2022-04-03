@@ -121,18 +121,23 @@ namespace MapMarkers
         {
             MapConfig conf = ModContent.GetInstance<MapConfig>();
 
-            CurrentPlayerWorldData.AddMarker(new SpawnMarker());
-
             if (Main.netMode == NetmodeID.SinglePlayer)
             {
-                if (conf.AddChestMarkers) AddChesMarkers();
+                CurrentPlayerWorldData.AddMarker(new SpawnMarker());
+
+                if (conf.AddChestMarkers) AddChestMarkers();
                 if (conf.AddStatueMarkers) AddStatueMarkers();
+            }
+            else if (Main.netMode == NetmodeID.Server) 
+            {
+                AddChestMarkers();
+                AddStatueMarkers();
             }
         }
 
         internal void AddStatueMarkers()
         {
-            if (CurrentPlayerWorldData is null)
+            if (CurrentPlayerWorldData is null && Main.netMode != NetmodeID.Server)
                 return;
 
             int statues = 0;
@@ -146,7 +151,8 @@ namespace MapMarkers
                     {
                         int item = StatueTileToItem(t);
                         if (item < 0) continue;
-                        CurrentPlayerWorldData.AddMarker(new StatueMarker(item, x, y));
+
+                        AddSpecialMarker(new StatueMarker(item, x, y));
                         statues++;
                     }
                 }
@@ -154,9 +160,9 @@ namespace MapMarkers
             Logger.InfoFormat("Added {0} statue markers", statues);
 #endif
         }
-        internal void AddChesMarkers()
+        internal void AddChestMarkers()
         {
-            if (CurrentPlayerWorldData is null)
+            if (CurrentPlayerWorldData is null && Main.netMode != NetmodeID.Server)
                 return;
 
             int chests = 0;
@@ -169,7 +175,7 @@ namespace MapMarkers
 
                 if (Chest.isLocked(chest.x, chest.y))
                 {
-                    CurrentPlayerWorldData.AddMarker(new LockedChestMarker(i));
+                    AddSpecialMarker(new LockedChestMarker(i));
                     chests++;
                 }
             }
@@ -177,6 +183,13 @@ namespace MapMarkers
 #if DEBUG
             Logger.InfoFormat("Added {0} locked chest markers", chests);
 #endif
+        }
+
+        public void AddSpecialMarker(AbstractMarker m) 
+        {
+            if (Main.netMode == NetmodeID.Server)
+                ModContent.GetInstance<Net.MapServer>().SpecialMarkers.Add(m);
+            else CurrentPlayerWorldData.AddMarker(m);
         }
 
         internal void ResetStatueMarkers()

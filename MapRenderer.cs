@@ -69,6 +69,12 @@ namespace MapMarkers
                 if (MapHelper.MapScale < m.MinZoom || !m.Active)
                     continue;
 
+                if (m.CheckRemove()) 
+                {
+                    MapMarkers.CurrentPlayerWorldData.Markers.Remove(m);
+                    continue;
+                }
+
                 Vector2 size = m.Size;
                 Vector2 screenpos = MapHelper.MapToScreen(m.Position.ToVector2()) - size / 2;
                 Rectangle screenRect = new Rectangle((int)screenpos.X, (int)screenpos.Y, (int)size.X, (int)size.Y);

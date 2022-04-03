@@ -16,6 +16,7 @@ namespace MapMarkers.Net
     public partial class MapServer : ModWorld
     {
         public List<MapMarker> Markers = new List<MapMarker>();
+        public List<AbstractMarker> SpecialMarkers = new List<AbstractMarker>();
         public int MaxMarkersLimit = 5;
 
         private const string ExceededMarkerCapMessage = "[[c/00ff00:Map Markers]] [c/ff0000:Max player marker limit reached, cannot set to global]";
@@ -31,6 +32,7 @@ namespace MapMarkers.Net
                 case PacketMessageType.Sync:
                     Sync(reader, whoAmI);
                     break;
+
                 case PacketMessageType.RequestMarkers:
                     ModPacket packet = mod.GetPacket();
                     packet.Write((byte)PacketMessageType.RequestMarkers);
@@ -43,7 +45,54 @@ namespace MapMarkers.Net
                     }
                     packet.Send(whoAmI);
                     break;
+
+                case PacketMessageType.RequestSpecial:
+
+                    SendSpecial(reader);
+
+                    break;
             }
+        }
+
+        private void SendSpecial(BinaryReader reader)
+        {
+            BitsByte b = reader.ReadByte();
+            bool statues = b[0];
+
+            ModPacket req = mod.GetPacket();
+            req.Write((byte)PacketMessageType.RequestSpecial);
+
+            List<AbstractMarker> response = new List<AbstractMarker>();
+            HashSet<AbstractMarker> remove = new HashSet<AbstractMarker>();
+
+            foreach (AbstractMarker m in SpecialMarkers)
+            {
+                if (m.CheckRemove())
+                {
+                    remove.Add(m);
+                    continue;
+                }
+
+                if (m is StatueMarker && statues)
+                    response.Add(m);
+            }
+            SpecialMarkers.RemoveAll(m => remove.Contains(m));
+
+            Console.WriteLine($"[Map Markers] Sending {response.Count} special markers");
+
+            req.Write((ushort)response.Count);
+            foreach (AbstractMarker m in response)
+            {
+                if (m is StatueMarker sm)
+                {
+                    req.Write((byte)0);
+                    req.Write(sm.Item);
+                    req.Write(sm.Position.X);
+                    req.Write(sm.Position.Y);
+                }
+            }
+
+            req.Send();
         }
 
         private void Sync(BinaryReader reader, int whoAmI)
@@ -137,7 +186,6 @@ namespace MapMarkers.Net
             return packet;
         }
 
-
         public override void Load(TagCompound tag)
         {
             Markers.Clear();
@@ -152,6 +200,9 @@ namespace MapMarkers.Net
             }
             if (tag.ContainsKey(MarkerCapNBTKey))
                 MaxMarkersLimit = tag.GetInt(MarkerCapNBTKey);
+
+            if (Main.netMode == NetmodeID.Server)
+                (mod as MapMarkers).AddSpecialMarkers();
         }
 
         public override TagCompound Save()
@@ -167,7 +218,8 @@ namespace MapMarkers.Net
     public enum PacketMessageType : byte 
     {
         Sync,
-        RequestMarkers
+        RequestMarkers,
+        RequestSpecial
     }
 
     public enum SyncMessageType : byte
