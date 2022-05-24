@@ -11,6 +11,12 @@
       "executablePath": "dotnet",
       "commandLineArgs": "$(tMLServerPath) -world \"C:\\Users\\vedom\\Documents\\My Games\\Terraria\\ModLoader\\Beta\\Worlds\\Testing_world.wld\"",
       "workingDirectory": "$(tMLSteamPath)"
+    },
+    "Terraria (Testing)": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "$(tMLPath) -skipselect \"Tester:Testing world\"",
+      "workingDirectory": "$(tMLSteamPath)"
     }
   }
 }
