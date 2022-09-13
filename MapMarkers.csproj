@@ -6,9 +6,16 @@
     <TargetFramework>net6.0</TargetFramework>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <LangVersion>latest</LangVersion>
+	<Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="tModLoader.CodeAssist" Version="0.1.*" />
   </ItemGroup>
-  <ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
+
+	<Target Name="CompileEffects" BeforeTargets="BuildMod">
+		<Exec 
+			Command="B:/fxc/fxcompiler_reach.exe"
+			WorkingDirectory="Effects"/>
+	</Target>
+
 </Project>

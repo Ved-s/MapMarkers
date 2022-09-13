@@ -1,401 +1,130 @@
-﻿using Faithlife.Utility;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using ReLogic.Content;
-using System;
-using System.IO;
-using System.Text;
-using Terraria;
-using Terraria.DataStructures;
-using Terraria.GameContent;
-using Terraria.ID;
-using Terraria.Localization;
-using Terraria.Map;
+﻿using System;
 using Terraria.ModLoader;
+using Microsoft.Xna.Framework;
+using MapMarkers.Structures;
 using Terraria.ModLoader.IO;
-using Terraria.UI;
+using Steamworks;
+using System.Text;
+using System.Data;
 
 namespace MapMarkers
 {
-    public abstract class AbstractMarker
+    /// <summary>
+    /// Base class for map markers
+    /// </summary>
+    public abstract class MapMarker : ILoadable
     {
-        static Guid NamespaceGUID = Guid.Parse("d214aa46-44ad-4a46-8afb-96c4e4b7b143");
+        internal static MapMarkers MapMarkers => ModContent.GetInstance<MapMarkers>();
 
-        protected Guid NonDeterministicGuid = Guid.NewGuid();
-        protected Guid? DeterministicGuid = null;
+        /// <summary>
+        /// Internal marker type name
+        /// </summary>
+        public virtual string Name => GetType().Name;
 
-        public Guid Id
+        /// <summary>
+        /// Mod which loaded this marker type
+        /// </summary>
+        public Mod Mod => InstanceMod ?? MapMarkers.MarkerInstances[GetType()].InstanceMod;
+
+        internal virtual string SaveModName => Mod.Name;
+
+        /// <summary>
+        /// Marker display name
+        /// </summary>
+        public virtual string DisplayName { get; set; } = "Unnamed marker";
+
+        /// <summary>
+        /// Marker id
+        /// </summary>
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        /// <summary>
+        /// Marker position in world tiles coordinates<br/>
+        /// <b>Warning!</b> Position is not saved automatically
+        /// </summary>
+        public virtual Vector2 Position { get; set; }
+
+        /// <summary>
+        /// Markre size in pixels
+        /// </summary>
+        public virtual Vector2 Size { get; set; } = new(20, 20);
+
+        public virtual Color OutlineColor { get; set; } = Color.White;
+
+        /// <summary>
+        /// Whether this marker should be drawn topmost, i.e. in front of all markers, map icons and minimap frame
+        /// </summary>
+        public virtual bool DrawTopMost { get; set; } = false;
+
+        /// <summary>
+        /// Whether this marker should be clipped to <see cref="Helper.MapVisibleScreenRect"/>
+        /// </summary>
+        public virtual bool ClipToMap { get; set; } = true;
+
+        /// <summary>
+        /// Marker save location
+        /// </summary>
+        public abstract SaveLocation SaveLocation { get; }
+
+        public bool Hovered { get; internal set; }
+        public Rect ScreenRect { get; internal set; }
+
+        internal Mod InstanceMod = null!;
+
+        void ILoadable.Load(Mod mod)
         {
-            get
-            {
-                if (!UseDeterministicGuid)
-                    return NonDeterministicGuid;
-
-                if (!DeterministicGuid.HasValue)
-                    RegenerateDeterministicGuid();
-
-                return DeterministicGuid.Value;
-            }
-            set => NonDeterministicGuid = value;
+            InstanceMod = mod;
+            MapMarkers.MarkerInstances[GetType()] = this;
         }
-        public virtual Point Position { get; set; }
-        public virtual string Name { get; set; }
-        public virtual float MinZoom => 0f;
-        public virtual bool Active => true;
 
-        protected virtual bool UseDeterministicGuid => false;
+        void ILoadable.Unload()
+        {
+            MapMarkers.MarkerInstances.Remove(GetType());
+        }
 
-        public abstract Vector2 Size { get; }
+        /// <summary>
+        /// Marker drawing method<br/>
+        /// Use <see cref="ScreenRect"> to draw marker
+        /// </summary>
+        public abstract void Draw();
 
-        public virtual bool CanDrag => false;
-        public virtual bool CanPin => true;
-        public virtual bool CanTeleport => CanTeleportDefault();
-        public virtual bool ShowPos => true;
-
-        public abstract void Draw(Vector2 screenPos);
+        /// <summary>
+        /// Called when marker is hovered on the map
+        /// </summary>
+        /// <param name="mouseText">Mouse text</param>
         public virtual void Hover(StringBuilder mouseText) { }
 
-        protected void RegenerateDeterministicGuid()
-        {
-            StringBuilder builder = new StringBuilder();
-            builder.Append(GetType().Name);
-            builder.Append(Name);
-            builder.Append(Position.X);
-            builder.Append(Position.Y);
-            ChangeDetermenisticGuidData(builder);
-            DeterministicGuid = GuidUtility.Create(NamespaceGUID, builder.ToString());
-        }
+        /// <summary>
+        /// Called when saving this marker's data
+        /// </summary>
+        public virtual void SaveData(TagCompound tag) { }
 
-        protected virtual void ChangeDetermenisticGuidData(StringBuilder builder) { }
+        /// <summary>
+        /// Called when loading this marker's data
+        /// </summary>
+        public virtual void LoadData(TagCompound tag) { }
 
-
-        protected bool CanTeleportDefault()
-        {
-            if (!Active)
-                return false;
-
-            return Main.Map[Position.X, Position.Y].Light > 40;
-        }
+        public virtual MapMarker CreateInstance() => (MapMarker)Activator.CreateInstance(GetType())!;
     }
 
-    public class StatueMarker : AbstractMarker
+    [Autoload(false)]
+    public class UnloadedMarker : MapMarker
     {
-        private readonly int Item;
+        public override string Name { get; }
+        internal override string SaveModName { get; }
+        public override SaveLocation SaveLocation { get; }
 
-        protected override bool UseDeterministicGuid => true;
-        public override float MinZoom => 1f;
-        public override string Name => Lang.GetItemNameValue(Item);
-        public override bool Active => Main.Map[Position.X, Position.Y].Light > 40;
-
-        public override Vector2 Size => TextureAssets.Item[Item].Size();
-
-        public StatueMarker(int item, int x, int y)
+        public UnloadedMarker(string name, string mod, SaveLocation saveLocation)
         {
-            Item = item;
-            Position = new Point(x + 1, y + 2);
-        }
-
-        public override void Draw(Vector2 screenPos)
-        {
-            if (Main.tile[Position.X, Position.Y].TileType != TileID.Statues)
-            {
-                ModContent.GetInstance<MapSystem>().CurrentPlayerWorldData.Markers.Remove(this);
-                return;
-            }
-
-            screenPos.Y -= 8;
-
-            Asset<Texture2D> texasset = TextureAssets.Item[Item];
-
-            if (!texasset.IsLoaded)
-                texasset = Main.Assets.Request<Texture2D>(texasset.Name, AssetRequestMode.ImmediateLoad);
-
-            Main.spriteBatch.Draw(texasset.Value, screenPos, Color.White * MapHelper.MapAlpha);
-        }
-    }
-    public class LockedChestMarker : AbstractMarker
-    {
-        protected override bool UseDeterministicGuid => true;
-        public override float MinZoom => 1f;
-
-        public override bool Active
-        {
-            get
-            {
-                Chest ch = Main.chest[Chest];
-                return Main.Map[ch.x, ch.y].Light > 40;
-            }
-        }
-
-        public override string Name
-        {
-            get
-            {
-                Chest ch = Main.chest[Chest];
-
-                int type = Main.Map[ch.x, ch.y].Type;
-                int chest1lookup = Terraria.Map.MapHelper.tileLookup[21];
-                int chest1count = Terraria.Map.MapHelper.tileOptionCounts[21];
-                int chest2lookup = Terraria.Map.MapHelper.tileLookup[467];
-                int chest2count = Terraria.Map.MapHelper.tileOptionCounts[467];
-
-                Tile tile = Main.tile[ch.x, ch.y];
-
-                LocalizedText[] chestType = null;
-
-                if (type >= chest1lookup && type < chest1lookup + chest1count)
-                {
-                    chestType = Lang.chestType;
-                }
-                else if (type >= chest2lookup && type < chest2lookup + chest2count)
-                {
-                    chestType = Lang.chestType2;
-                }
-                else return "";
-
-                if (Chest < 0)
-                {
-                    return chestType[0].Value;
-                }
-                return chestType[tile.TileFrameX / 36].Value;
-            }
-        }
-        public override Point Position
-        {
-            get
-            {
-                Chest ch = Main.chest[Chest];
-                return new Point(ch.x + 1, ch.y + 1);
-            }
-        }
-
-        private int Chest;
-
-        public LockedChestMarker(int chest)
-        {
-            Chest = chest;
-            Chest ch = Main.chest[Chest];
-        }
-
-        public override Vector2 Size => new Vector2(32, 32);
-
-        public override void Draw(Vector2 screenpos)
-        {
-            if (!Terraria.Chest.IsLocked(Position.X, Position.Y))
-            {
-                ModContent.GetInstance<MapSystem>().CurrentPlayerWorldData.Markers.Remove(this);
-                return;
-            }
-
-            Chest ch = Main.chest[Chest];
-            if (TextureAssets.Item[Main.tile[ch.x, ch.y].TileType] is null) return;
-
-            Asset<Texture2D> texasset = TextureAssets.Tile[Main.tile[ch.x, ch.y].TileType];
-
-            if (!texasset.IsLoaded)
-                texasset = Main.Assets.Request<Texture2D>(texasset.Name, AssetRequestMode.ImmediateLoad);
-
-            Texture2D tex = texasset.Value;
-            if (tex.Width < 18 || tex.Height < 18)
-                return;
-
-            byte cols = (byte)(tex.Width / 18 );
-            byte rows = (byte)(tex.Height / 18);
-
-            for (int x = 0; x < 2; x++)
-                for (int y = 0; y < 2; y++)
-                {
-                    Tile t = Main.tile[ch.x + x, ch.y + y];
-
-                    Vector2 drawpos = screenpos + new Vector2(x, y) * 16;
-
-                    Rectangle source = new(t.TileFrameX, t.TileFrameY, 16, 16);
-                    
-                    Main.spriteBatch.Draw(tex, drawpos, source, Color.White * MapHelper.MapAlpha);
-                }
-        }
-    }
-
-    //public class SpawnMarker : AbstractMarker
-    //{
-    //    public override string Name => "Spawn";
-    //    public override Point Position => new Point(Main.spawnTileX, Main.spawnTileY);
-    //
-    //    public override Vector2 Size => TextureAssets.Item[ItemID.Acorn].Size();
-    //
-    //    public override void Draw(Vector2 screenPos)
-    //    {
-    //        Main.spriteBatch.Draw(TextureAssets.Item[ItemID.Acorn].Value, screenPos, Color.White);
-    //    }
-    //}
-
-    public class MapMarker : AbstractMarker
-    {
-        public Item Item;
-        public bool BrandNew;
-        public ServerMarkerData ServerData;
-
-        public bool IsServerSide => ServerData != null;
-
-        public override Vector2 Size => TextureAssets.Item[Item.type].Size();
-
-        public MapMarker(string name, Point position, Item item)
-        {
-            Position = position;
-            Item = item;
             Name = name;
+            SaveModName = mod;
+            SaveLocation = saveLocation;
+            InstanceMod = ModContent.GetInstance<MapMarkers>();
         }
 
-        public bool AllowPerm(MarkerPerms perm, int player = -1)
+        public override void Draw() 
         {
-            if (Main.netMode == NetmodeID.SinglePlayer) return true;
-            if (ServerData == null) return true;
 
-            if (player < 0) player = Main.myPlayer;
-            if (ServerData.Owner == Main.player[player].name) return true;
-
-            return ServerData.PublicPerms.HasFlag(perm);
         }
-
-        public TagCompound GetData()
-        {
-            TagCompound tag = new TagCompound();
-            tag["x"] = Position.X;
-            tag["y"] = Position.Y;
-            tag["item"] = ItemIO.Save(Item);
-            tag["name"] = Name;
-            tag["id"] = Id.ToString();
-            if (ServerData != null) tag["server"] = ServerData.GetData();
-            return tag;
-        }
-
-        public static MapMarker Read(BinaryReader reader, Guid id)
-        {
-            string name = reader.ReadString();
-            int x = reader.ReadInt32();
-            int y = reader.ReadInt32();
-            int itemType = reader.ReadInt32();
-
-            Item item = new Item();
-            item.SetDefaults(itemType);
-
-            MapMarker m = new MapMarker(name, new Point(x, y), item);
-            m.Id = id;
-            m.ServerData = new ServerMarkerData();
-            m.ServerData.Owner = reader.ReadString();
-            m.ServerData.PublicPerms = (MarkerPerms)reader.ReadInt32();
-
-            return m;
-        }
-        public void Write(BinaryWriter writer)
-        {
-            writer.Write(Name);
-            writer.Write(Position.X);
-            writer.Write(Position.Y);
-            writer.Write(Item.type);
-            writer.Write(ServerData.Owner);
-            writer.Write((int)ServerData.PublicPerms);
-        }
-
-        public static MapMarker FromData(TagCompound data)
-        {
-            Item item = new Item();
-            object i = data["item"];
-            if (i is int id)
-                item.SetDefaults(id);
-            else if (i is TagCompound tag)
-                ItemIO.Load(item, tag);
-
-            string idstr = null;
-            Guid guid = Guid.NewGuid();
-
-            if (data.ContainsKey("id"))
-            {
-                idstr = data.GetString("id");
-                guid = Guid.Parse(idstr);
-            }
-            else if (data.ContainsKey("server"))
-            {
-                TagCompound servd = data.GetCompound("server");
-                if (servd.ContainsKey("id"))
-                {
-                    idstr = servd.GetString("id");
-                    guid = Guid.Parse(idstr);
-                }
-            }
-
-            TagCompound server = null;
-            ServerMarkerData smd = null;
-            data.TryLoad("server", ref server);
-            if (server != null)
-            {
-                smd = ServerMarkerData.FromData(server);
-            }
-
-            return new MapMarker(data.GetString("name"), new Point(data.GetInt("x"), data.GetInt("y")), item)
-            {
-                ServerData = smd,
-                Id = guid
-            };
-        }
-
-        public override int GetHashCode()
-        {
-            return Position.GetHashCode() ^ Item.type ^ Name.GetHashCode();
-        }
-
-        public override void Draw(Vector2 screenPos)
-        {
-            Asset<Texture2D> texasset = TextureAssets.Item[Item.type];
-
-            if (!texasset.IsLoaded)
-                texasset = Main.Assets.Request<Texture2D>(texasset.Name, AssetRequestMode.ImmediateLoad);
-
-            Texture2D tex = texasset.Value;
-
-            Main.spriteBatch.Draw(tex, screenPos, Color.White * MapHelper.MapAlpha);
-        }
-    }
-    public class ServerMarkerData
-    {
-        private const string OwnerDataKey = "owner";
-        private const string PubEditDataKey = "edit";
-        private const string PubPermDataKey = "perms";
-
-        public string Owner;
-        public MarkerPerms PublicPerms = MarkerPerms.None;
-
-        public TagCompound GetData()
-        {
-            TagCompound tag = new TagCompound();
-            tag[OwnerDataKey] = Owner;
-            tag[PubPermDataKey] = (int)PublicPerms;
-            return tag;
-        }
-
-        public static ServerMarkerData FromData(TagCompound data)
-        {
-            ServerMarkerData m = new ServerMarkerData();
-            data.TryLoad(OwnerDataKey, ref m.Owner);
-
-            if (data.ContainsKey(PubEditDataKey) && data.GetBool(PubEditDataKey))
-            {
-                m.PublicPerms = MarkerPerms.Edit;
-            }
-            else if (data.ContainsKey(PubPermDataKey))
-            {
-                m.PublicPerms = (MarkerPerms)data.GetInt(PubPermDataKey);
-            }
-
-            return m;
-        }
-    }
-
-    [Flags]
-    public enum MarkerPerms
-    {
-        None = 0,
-        Edit = 1,
-        Delete = 2
     }
 }

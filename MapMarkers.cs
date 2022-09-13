@@ -1,61 +1,69 @@
-using Mono.Cecil.Cil;
-using MonoMod.Cil;
-using System.IO;
+﻿using MapMarkers.Structures;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using Terraria;
 using Terraria.ModLoader;
+using Terraria.ModLoader.IO;
 
 namespace MapMarkers
 {
-	public class MapMarkers : Mod
-	{
-        public override void Load()
+    /// <summary>
+    /// Main mod class
+    /// </summary>
+    public class MapMarkers : Mod
+    {
+        internal Dictionary<Type, MapMarker> MarkerInstances = new();
+
+        /// <summary>
+        /// List of current player+world markers
+        /// </summary>
+        public Dictionary<Guid, MapMarker> Markers { get; } = new();
+
+        public ShortGuids MarkerGuids { get; } = new(2);
+
+        public static TagCompound SaveMarker(MapMarker marker)
         {
-            IL.Terraria.Main.CanPauseGame += CanPauseGameIL;
+            TagCompound tag = new();
+            tag["id"] = marker.Id.ToByteArray();
+            tag["name"] = marker.Name;
+            tag["mod"] = marker.SaveModName;
+            TagCompound data = new();
+            marker.SaveData(data);
+            tag["data"] = data;
+            return tag;
         }
-
-        public override void Unload()
+        public static MapMarker? LoadMarker(TagCompound markerData)
         {
-            IL.Terraria.Main.CanPauseGame -= CanPauseGameIL;
-        }
+            if (!markerData.TryGet("name", out string name) || !markerData.TryGet("mod", out string mod))
+                return null;
 
-        private void CanPauseGameIL(ILContext il)
-        {
-            ILCursor c = new(il);
+            MapMarker? marker;
 
-            /*
-               IL_0002: ldsfld    int32 Terraria.Main::netMode
-               IL_0007: brtrue.s  IL_0077
-             */
-
-            int pauseFlag = -1;
-
-            if (!c.TryGotoNext(
-                x => x.MatchLdsfld<Main>("netMode"),
-                x => x.MatchBrtrue(out _),
-                x => x.MatchLdloc(out pauseFlag)
-                ))
+            Mod? modInst = ModLoader.GetMod(mod);
+            if (modInst is null)
             {
-                Logger.WarnFormat("Patch error: {0}", il.Method.FullName);
-                return;
+                marker = new UnloadedMarker(name, mod, SaveLocation.Server);
+            }
+            else 
+            {
+                marker = modInst.GetContent().FirstOrDefault(c => c is MapMarker m && m.Name == name) as MapMarker;
+                if (marker is null)
+                    marker = new UnloadedMarker(name, mod, SaveLocation.Server);
+                else marker = marker.CreateInstance();
             }
 
-            c.Index += 2;
-            c.Emit(OpCodes.Ldloc, pauseFlag);
-            c.Emit<MapMarkers>(OpCodes.Call, "CanPauseGame");
-            c.Emit(OpCodes.Or);
-            c.Emit(OpCodes.Stloc, pauseFlag);
-        }
+            if (markerData.TryGet("id", out byte[] id))
+                marker.Id = new(id);
 
-        public override void HandlePacket(BinaryReader reader, int whoAmI)
-        {
-            if (Main.dedServ) ModContent.GetInstance<Net.MapServer>().HandlePacket(reader, whoAmI);
-            else Net.MapClient.HandlePacket(reader);
-        }
+            if (markerData.TryGet("data", out TagCompound data))
+                marker.LoadData(data);
 
-        private static bool CanPauseGame()
-        {
-            return ModContent.GetInstance<MapSystem>().MarkerGui.Marker is not null &&
-                (ModContent.GetInstance<MapConfig>().AutopauseOnUI || Main.autoPause);
+            return marker;
         }
     }
 }

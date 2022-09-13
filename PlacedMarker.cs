@@ -1,0 +1,74 @@
+﻿using Terraria.ModLoader;
+using Microsoft.Xna.Framework;
+using Terraria;
+using Microsoft.Xna.Framework.Graphics;
+using Terraria.GameContent;
+using ReLogic.Content;
+using Terraria.ID;
+using Terraria.ModLoader.IO;
+
+namespace MapMarkers
+{
+    public class PlacedMarker : MapMarker
+    {
+        public Item DisplayItem 
+        {
+            get => displayItem;
+            set { displayItem = value; ItemTextureCache = null; }
+        }
+
+        public override SaveLocation SaveLocation => SaveLocation.Client;
+        public override Vector2 Size => ItemTexture.Size();
+
+        Texture2D ItemTexture
+        {
+            get
+            {
+                if (ItemTextureCache is not null)
+                    return ItemTextureCache;
+
+                int itemType = DisplayItem.type;
+                if (itemType <= 0)
+                    itemType = ItemID.TrifoldMap;
+
+                var asset = TextureAssets.Item[itemType];
+
+                if (asset.State == AssetState.NotLoaded)
+                {
+                    if (itemType > ItemID.Count)
+                        asset = ModContent.Request<Texture2D>(asset.Name, AssetRequestMode.ImmediateLoad);
+                    else
+                        asset = Main.Assets.Request<Texture2D>(asset.Name, AssetRequestMode.ImmediateLoad);
+                }
+                else if (asset.State == AssetState.Loading)
+                    asset.Wait();
+
+                return ItemTextureCache = asset.Value;
+            } 
+        }
+        Texture2D? ItemTextureCache;
+        private Item displayItem = new();
+
+        public override void Draw()
+        {
+            Main.spriteBatch.Draw(ItemTexture, ScreenRect, Color.White);
+        }
+
+        public override void SaveData(TagCompound tag)
+        {
+            tag["name"] = DisplayName;
+            tag["item"] = ItemIO.Save(DisplayItem);
+            tag["pos"] = Position;
+        }
+
+        public override void LoadData(TagCompound tag)
+        {
+            if (tag.TryGet("name", out string name))
+                DisplayName = name;
+            if (tag.TryGet("item", out TagCompound item))
+                DisplayItem = ItemIO.Load(item);
+            if (tag.TryGet("pos", out Vector2 pos))
+                Position = pos;
+        }
+    }
+}
