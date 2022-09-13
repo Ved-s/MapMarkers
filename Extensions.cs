@@ -18,6 +18,12 @@ namespace MapMarkers
             spriteBatch.Draw(texture, destinationRectangle.Location, null, color, 0f, Vector2.Zero, destinationRectangle.Size / texture.Size(), SpriteEffects.None, 0);
         }
 
+        public static void Draw(this SpriteBatch spriteBatch, Texture2D texture, Rect destinationRectangle, Rectangle? sourceRectangle, Color color)
+        {
+            Vector2 size = sourceRectangle?.Size() ?? texture.Size();
+            spriteBatch.Draw(texture, destinationRectangle.Location, sourceRectangle, color, 0f, Vector2.Zero, destinationRectangle.Size / size, SpriteEffects.None, 0);
+        }
+
         public static void FillRectangle(this SpriteBatch spriteBatch, Rect rect, Color color)
         {
             spriteBatch.Draw(TextureAssets.MagicPixel.Value, rect, color);

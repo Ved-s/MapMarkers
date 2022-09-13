@@ -18,8 +18,9 @@ namespace MapMarkers
         }
 
         public override SaveLocation SaveLocation => SaveLocation.Client;
-        public override Vector2 Size => ItemTexture.Size();
+        public override Vector2 Size => ItemFrame.Size();
 
+        int ItemType => DisplayItem.type <= ItemID.None ? ItemID.TrifoldMap : DisplayItem.type;
         Texture2D ItemTexture
         {
             get
@@ -27,9 +28,7 @@ namespace MapMarkers
                 if (ItemTextureCache is not null)
                     return ItemTextureCache;
 
-                int itemType = DisplayItem.type;
-                if (itemType <= 0)
-                    itemType = ItemID.TrifoldMap;
+                int itemType = ItemType;
 
                 var asset = TextureAssets.Item[itemType];
 
@@ -46,12 +45,17 @@ namespace MapMarkers
                 return ItemTextureCache = asset.Value;
             } 
         }
+
+        Rectangle ItemFrame => (Main.itemAnimations[ItemType] is null) ?
+            ItemTexture.Frame(1, 1, 0, 0, 0, 0) 
+            : Main.itemAnimations[ItemType].GetFrame(ItemTexture, -1);
+
         Texture2D? ItemTextureCache;
         private Item displayItem = new();
 
         public override void Draw()
         {
-            Main.spriteBatch.Draw(ItemTexture, ScreenRect, Color.White);
+            Main.spriteBatch.Draw(ItemTexture, ScreenRect, ItemFrame, Color.White);
         }
 
         public override void SaveData(TagCompound tag)
