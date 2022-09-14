@@ -4,3 +4,4 @@ version = 2.0.0
 side = NoSync
 homepage = https://github.com/Ved-s/MapMarkers/tree/1.4
 buildIgnore = *.fx, Properties/*, workshop.json, *.csproj.user
+weakReferences = HEROsMod

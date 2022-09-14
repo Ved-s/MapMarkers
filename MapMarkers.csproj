@@ -13,9 +13,7 @@
   </ItemGroup>
 
 	<Target Name="CompileEffects" BeforeTargets="BuildMod">
-		<Exec 
-			Command="B:/fxc/fxcompiler_reach.exe"
-			WorkingDirectory="Effects"/>
+		<Exec Command="B:/fxc/fxcompiler_reach.exe" WorkingDirectory="Effects" />
 	</Target>
 
 </Project>

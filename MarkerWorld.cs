@@ -1,4 +1,7 @@
-﻿using System;
+﻿using MapMarkers.Structures;
+using MapMarkers.UI;
+using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria;
@@ -55,6 +58,16 @@ namespace MapMarkers
         public override void OnWorldUnload()
         {
             MapMarkers.Markers.RemoveWhere(kvp => kvp.Value.SaveLocation != SaveLocation.Client);
+        }
+
+        public override void UpdateUI(GameTime gameTime)
+        {
+            MarkerMenu.Update(gameTime);
+        }
+
+        public override void PostUpdateInput()
+        {
+            Keybinds.Update();
         }
     }
 }

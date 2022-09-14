@@ -1,9 +1,9 @@
-﻿namespace MapMarkers
+﻿namespace MapMarkers.Structures
 {
     /// <summary>
     /// Marker save location
     /// </summary>
-    public enum SaveLocation 
+    public enum SaveLocation
     {
         /// <summary>
         /// Don't save the marker

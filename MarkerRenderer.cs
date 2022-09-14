@@ -1,6 +1,8 @@
 ﻿using MapMarkers.Structures;
+using MapMarkers.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using ReLogic.Content;
 using System;
 using System.Collections.Generic;
@@ -21,6 +23,7 @@ namespace MapMarkers
         public bool IsReady { get; set; }
 
         private StringBuilder MouseTextBuilder = new();
+        private MapMarker? PrevHoveredMarker = null;
         private MapMarker? HoveredMarker = null;
         private RasterizerState Scissors = new RasterizerState { ScissorTestEnable = true };
 
@@ -34,6 +37,7 @@ namespace MapMarkers
 
         internal void UpdateMarkers()
         {
+            PrevHoveredMarker = HoveredMarker;
             HoveredMarker = null;
             VisibleMarkers.Clear();
 
@@ -48,7 +52,7 @@ namespace MapMarkers
                 marker.ScreenRect = screenRect;
                 marker.Hovered = screenRect.Contains(Main.MouseScreen);
 
-                if (marker.Hovered && (HoveredMarker is null || HoveredMarker.DrawTopMost == marker.DrawTopMost || !HoveredMarker.DrawTopMost && marker.DrawTopMost))
+                if (!MarkerMenu.Hovering && marker.Hovered && (HoveredMarker is null || HoveredMarker.DrawTopMost == marker.DrawTopMost || !HoveredMarker.DrawTopMost && marker.DrawTopMost))
                 {
                     if (HoveredMarker is not null)
                         HoveredMarker.Hovered = false;
@@ -84,7 +88,7 @@ namespace MapMarkers
 
             foreach (MapMarker marker in VisibleMarkers)
                 if (marker.ClipToMap && marker.DrawTopMost == onTop)
-                    DrawMarker(marker, Scissors);
+                    DrawMarker(marker);
 
             Main.spriteBatch.End();
             Main.graphics.GraphicsDevice.ScissorRectangle = scissors;
@@ -92,7 +96,7 @@ namespace MapMarkers
 
             foreach (MapMarker marker in VisibleMarkers)
                 if (!marker.ClipToMap && marker.DrawTopMost == onTop)
-                    DrawMarker(marker, RasterizerState.CullCounterClockwise);
+                    DrawMarker(marker);
 
             if (onTop && HoveredMarker is not null)
                 HoverMarker(HoveredMarker, ref mouseText);
@@ -112,9 +116,21 @@ namespace MapMarkers
 
             Main.spriteBatch.End();
             Main.spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullCounterClockwise, null, Main.UIScaleMatrix);
+
+            if (onTop)
+                MarkerMenu.Draw();
+
+            if (!MarkerMenu.Hovering)
+            {
+                if (PrevHoveredMarker is null && HoveredMarker is not null)
+                    HerosIntegration.Instance.AllowTp = false;
+
+                if (PrevHoveredMarker is not null && HoveredMarker is null)
+                    HerosIntegration.Instance.AllowTp = true;
+            }
         }
 
-        void DrawMarker(MapMarker marker, RasterizerState currentRasterizer)
+        void DrawMarker(MapMarker marker)
         {
             if (IsReady && HoverMarkerRenderTarget is not null && RenderTargetMarkerId == marker.Id)
                 return;
@@ -135,6 +151,9 @@ namespace MapMarkers
             marker.Hover(MouseTextBuilder);
 
             mouseText += MouseTextBuilder.ToString();
+
+            if (Keybinds.MouseRightKey == KeybindState.JustPressed)
+                MarkerMenu.Show(marker);
         }
 
         public void PrepareRenderTarget(GraphicsDevice device, SpriteBatch spriteBatch)

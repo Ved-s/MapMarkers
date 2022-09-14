@@ -6,12 +6,13 @@ using Terraria.GameContent;
 using ReLogic.Content;
 using Terraria.ID;
 using Terraria.ModLoader.IO;
+using MapMarkers.Structures;
 
-namespace MapMarkers
+namespace MapMarkers.Markers
 {
     public class PlacedMarker : MapMarker
     {
-        public Item DisplayItem 
+        public Item DisplayItem
         {
             get => displayItem;
             set { displayItem = value; ItemTextureCache = null; }
@@ -43,11 +44,11 @@ namespace MapMarkers
                     asset.Wait();
 
                 return ItemTextureCache = asset.Value;
-            } 
+            }
         }
 
-        Rectangle ItemFrame => (Main.itemAnimations[ItemType] is null) ?
-            ItemTexture.Frame(1, 1, 0, 0, 0, 0) 
+        Rectangle ItemFrame => Main.itemAnimations[ItemType] is null ?
+            ItemTexture.Frame(1, 1, 0, 0, 0, 0)
             : Main.itemAnimations[ItemType].GetFrame(ItemTexture, -1);
 
         Texture2D? ItemTextureCache;

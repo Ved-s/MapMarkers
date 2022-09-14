@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Policy;
+using System.Text;
 using Terraria;
 using Terraria.GameContent;
 
@@ -34,11 +35,20 @@ namespace MapMarkers
         }
 
         public static void DrawRectangle(this SpriteBatch spriteBatch, Rect rect, Color color, int thickness = 1)
-        {
+        { 
+            // Top
             spriteBatch.FillRectangle(rect.X + thickness, rect.Y, rect.Width - thickness, thickness, color);
+
+            // Left
             spriteBatch.FillRectangle(rect.X, rect.Y, thickness, rect.Height - thickness, color);
-            spriteBatch.FillRectangle(rect.X, rect.Bottom - thickness, rect.Width - thickness, thickness, color);
-            spriteBatch.FillRectangle(rect.Right - thickness, rect.Y + thickness, thickness, rect.Height - thickness, color);
+
+            if (rect.Height > thickness)
+                // Bottom
+                spriteBatch.FillRectangle(rect.X, rect.Bottom - thickness, Math.Max(thickness, rect.Width - thickness), thickness, color);
+
+            if (rect.Width > thickness)
+                // Right
+                spriteBatch.FillRectangle(rect.Right - thickness, rect.Y + thickness, thickness, Math.Max(thickness, rect.Height - thickness), color);
         }
 
         public static string AppendLine(this string str, string line)
@@ -55,6 +65,30 @@ namespace MapMarkers
             List<TKey> remove = dict.Where(selector).Select(kvp => kvp.Key).ToList();
             foreach (TKey key in remove)
                 dict.Remove(key);
+        }
+
+        public static IEnumerable<string> SplitByWhitespace(this string str, bool includeChar)
+        {
+            StringBuilder builder = new();
+
+            for (int i = 0; i < str.Length; i++)
+            {
+                char c = str[i];
+                if (char.IsWhiteSpace(c))
+                {
+                    if (includeChar)
+                        builder.Append(c);
+
+                    yield return builder.ToString();
+                    builder.Clear();
+                    continue;
+                }
+
+                builder.Append(c);
+            }
+
+            if (builder.Length > 0)
+                yield return builder.ToString();
         }
     }
 }
