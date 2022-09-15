@@ -44,6 +44,9 @@ namespace MapMarkers.UI
         public static bool PrevHovering;
         public static bool Hovering;
 
+        static Vector2 MapPosUICache;
+        static float MapScaleUICache;
+
         public static void Show(MapMarker? marker)
         {
             if (!Helper.IsFullscreenMap)
@@ -75,6 +78,9 @@ namespace MapMarkers.UI
             State!.Left.Set(marker.ScreenRect.Right + 4, 0);
             State.Recalculate();
             InitMenuItems();
+
+            MapPosUICache = Main.mapFullscreenPos;
+            MapScaleUICache = Main.mapFullscreenScale;
 
             SoundEngine.PlaySound(SoundID.MenuOpen);
         }
@@ -271,12 +277,10 @@ namespace MapMarkers.UI
             UIElement? e = UI.IsVisible ? State?.GetElementAt(Main.MouseScreen) : null;
             Hovering = e is not null and not UIState;
 
-            if (UI.IsVisible && State is not null && !Hovering && (
-                Keybinds.MouseLeftKey == KeybindState.Pressed
-                || PlayerInput.ScrollWheelDelta != 0
-                || Main.LocalPlayer.mapZoomIn
-                || Main.LocalPlayer.mapZoomOut
-                ))
+            if (UI.IsVisible && 
+                (State is not null && !Hovering && Keybinds.MouseLeftKey == KeybindState.Pressed
+                || MapPosUICache != Main.mapFullscreenPos
+                || MapScaleUICache != Main.mapFullscreenScale))
             {
                 UI.IsVisible = false;
                 Marker = null;

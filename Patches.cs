@@ -32,12 +32,12 @@ namespace MapMarkers
         {
             Patch_Main_DrawMap_MapRendering(il);
             Patch_Main_DrawMap_Pinging(il);
+            Patch_Main_DrawMap_MapDrag(il);
         }
 
         private void Player_Update(ILContext il)
         {
             Patch_Player_Update_MapZoom(il);
-            Patch_Player_Update_MapZoom2(il);
         }
 
         private static void Patch_Main_DrawMap_MapRendering(ILContext il)
@@ -172,29 +172,15 @@ AfterCall:  +----> +#: ldloc num18
             c.Emit(OpCodes.Ldsfld, typeof(UI.MarkerMenu).GetField("Hovering"));
             c.Emit(OpCodes.Brtrue, ifEndLabel);
         }
-        private static void Patch_Player_Update_MapZoom(ILContext il)
+        private static void Patch_Main_DrawMap_MapDrag(ILContext il)
         {
             ILCursor c = new(il);
-
             /*
-              IL_0BAC: ldsfld    bool Terraria.Main::mapFullscreen
-		      IL_0BB1: brfalse.s IL_0BEB // if ends at this address, but there's else right next to it
+              IL_028E: ldsfld    bool Terraria.Main::mapFullscreen
+	          IL_0293: brfalse   IL_08D3
               
-                   +#: ldsfld MapMarkers.UI.MarkerMenu::Hovering
-                   +#: brtrue IL_0D0C
-
-		      IL_0BB3: ldarg.0
-		      IL_0BB4: ldfld     bool Terraria.Player::mapZoomIn
-		      IL_0BB9: brfalse.s IL_0BCB
-              
-		      IL_0BBB: ldsfld    float32 Terraria.Main::mapFullscreenScale
-		      IL_0BC0: ldc.r4    1.05
-		      IL_0BC5: mul
-		      IL_0BC6: stsfld    float32 Terraria.Main::mapFullscreenScale
-              
-		      IL_0BCB: ldarg.0
-		      IL_0BCC: ldfld     bool Terraria.Player::mapZoomOut
-		      IL_0BD1: brfalse   IL_0D0C // else ends at this address
+	          IL_0298: ldsfld    bool Terraria.Main::mouseLeft
+	          IL_029D: brfalse   IL_0359
              */
 
             ILLabel ifEndLabel = null!;
@@ -203,21 +189,11 @@ AfterCall:  +----> +#: ldloc num18
                 x=>x.MatchLdsfld<Main>(nameof(Main.mapFullscreen)),
                 x=>x.MatchBrfalse(out _),
 
-                x=>x.MatchLdarg(0),
-                x=>x.MatchLdfld<Player>(nameof(Player.mapZoomIn)),
-                x=>x.MatchBrfalse(out _),
-
-                x=>x.MatchLdsfld<Main>(nameof(Main.mapFullscreenScale)),
-                x=>x.MatchLdcR4(out _),
-                x=>x.MatchMul(),
-                x=>x.MatchStsfld<Main>(nameof(Main.mapFullscreenScale)),
-
-                x=>x.MatchLdarg(0),
-                x=>x.MatchLdfld<Player>(nameof(Player.mapZoomOut)),
-                x=>x.MatchBrfalse(out ifEndLabel)
+                x=>x.MatchLdsfld<Main>(nameof(Main.mouseLeft)),
+                x => x.MatchBrfalse(out ifEndLabel)
                 ))
             {
-                MapMarkers.Logger.Warn("Patch error in PLayer.Update: MapZoom");
+                MapMarkers.Logger.Warn("Patch error in Main.DrawMap: MapDrag");
                 if (Debugger.IsAttached) Debugger.Break();
                 return;
             }
@@ -227,7 +203,7 @@ AfterCall:  +----> +#: ldloc num18
             c.Emit(OpCodes.Ldsfld, typeof(UI.MarkerMenu).GetField("Hovering"));
             c.Emit(OpCodes.Brtrue, ifEndLabel);
         }
-        private static void Patch_Player_Update_MapZoom2(ILContext il)
+        private static void Patch_Player_Update_MapZoom(ILContext il)
         {
             ILCursor c = new(il);
             /*
@@ -262,7 +238,7 @@ Set:       +> IL_1307: stloc.s   num7
                 x=>x.MatchStloc(out _)
                 ))
             {
-                MapMarkers.Logger.Warn("Patch error in PLayer.Update: MapZoom2");
+                MapMarkers.Logger.Warn("Patch error in PLayer.Update: MapZoom");
                 if (Debugger.IsAttached) Debugger.Break();
                 return;
             }
