@@ -92,6 +92,7 @@ namespace MapMarkers.UI
                 if (!t.Text.Contains('\n'))
                 {
                     textSize = FontAssets.MouseText.Value.MeasureString(t.Text) * t.Scale;
+                    textSize.Y -= 4;
                     if (textSize.X < remWidth)
                     {
                         Append(t, textSize);
@@ -109,7 +110,7 @@ namespace MapMarkers.UI
                     string testText = index < 0 ? text : text.Substring(0, index + 1);
 
                     textSize.X = FontAssets.MouseText.Value.MeasureString(testText).X * t.Scale;
-                    textSize.Y = FontAssets.MouseText.Value.LineSpacing * t.Scale;
+                    textSize.Y = FontAssets.MouseText.Value.LineSpacing * t.Scale - 4;
 
                     if (textSize.X > remWidth && prevText.Length > 0 || index < 0)
                     {

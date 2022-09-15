@@ -23,6 +23,23 @@ namespace MapMarkers.UI
         public static UIPanel? MarkerNamePanel;
         public static UIText? MarkerName;
 
+        public static UIAutoLabel? DescriptionLabel;
+        public static UIPanel? DescriptionPanel;
+
+        public static string DescriptionText 
+        {
+            get => DescriptionLabel?.Text ?? "";
+            set 
+            {
+                if (DescriptionLabel is null || Panel is null)
+                    return;
+
+                DescriptionLabel.Text = value;
+                UpdateDescriptionPos();
+            }
+        }
+        public static float DescriptionY;
+
         public static bool PrevHovering;
         public static bool Hovering;
 
@@ -106,6 +123,23 @@ namespace MapMarkers.UI
             if (Marker is not null)
                 Show(Marker);
             else InitMenuItems();
+
+            string desc = DescriptionText;
+
+            DescriptionLabel = new()
+            {
+                Width = new(0, 1)
+            };
+            DescriptionPanel = new()
+            {
+                Width = new(200, 0),
+                BackgroundColor = new(30, 30, 30, 200),
+                PaddingTop = 2,
+                PaddingBottom = 0
+            };
+            DescriptionPanel.Append(DescriptionLabel);
+
+            DescriptionText = desc;
         }
 
         internal static void InitMenuItems()
@@ -134,14 +168,19 @@ namespace MapMarkers.UI
 
                     BackgroundColor = new Color(64, 64, 64, 200),
                 };
+                string description = def.Description;
+                float desY = y + Panel.PaddingTop;
                 labelPanel.OnMouseOver += (ev, el) =>
                 {
+                    DescriptionY = desY;
+                    DescriptionText = description;
                     (el as UIPanel)!.BackgroundColor = new Color(96, 96, 96, 200);
                     SoundEngine.PlaySound(SoundID.MenuTick);
                 };
 
                 labelPanel.OnMouseOut += (ev, el) =>
                 {
+                    DescriptionText = "";
                     (el as UIPanel)!.BackgroundColor = new Color(64, 64, 64, 200);
                 };
 
@@ -158,7 +197,7 @@ namespace MapMarkers.UI
                 labelPanel.Append(label);
 
                 label.Recalculate();
-                labelPanel.Height = new(label.GetOuterDimensions().Height + labelPanel.PaddingTop + labelPanel.PaddingBottom - 6, 0);
+                labelPanel.Height = new(label.GetOuterDimensions().Height + labelPanel.PaddingTop + labelPanel.PaddingBottom - 2, 0);
 
                 labelPanel.Recalculate();
                 y += labelPanel.GetOuterDimensions().Height;
@@ -169,14 +208,44 @@ namespace MapMarkers.UI
             Panel.Height = new(y + Panel.PaddingTop + Panel.PaddingBottom, 0);
 
             Panel.Recalculate();
+            UpdateDescriptionPos();
+        }
+
+        internal static void UpdateDescriptionPos()
+        {
+            if (Panel is null || State is null || DescriptionLabel is null || DescriptionPanel is null)
+                return;
+
+            if (DescriptionText == "")
+            {
+                State.RemoveChild(DescriptionPanel);
+                return;
+            }
+
+            State.Append(DescriptionPanel);
+
+            DescriptionLabel.Recalculate();
+            DescriptionPanel.Height = new(DescriptionLabel.GetOuterDimensions().Height + DescriptionPanel.PaddingTop + DescriptionPanel.PaddingBottom, 0);
+            DescriptionPanel.Left = new(Panel.GetOuterDimensions().ToRectangle().Right + 2 - State.GetDimensions().X, 0);
+            DescriptionPanel.Top = new(Panel.GetOuterDimensions().Y + DescriptionY - State.GetDimensions().Y, 0);
+
+            DescriptionPanel.Recalculate();
         }
 
         internal static IEnumerable<MenuItemDefinition> EnumerateMenuItems()
         {
-            yield return new("Menu item 1", () => { Main.NewText("Action 1"); });
-            yield return new("Menu item 2", () => { Main.NewText("Action 2"); });
-            yield return new("Menu item 3", () => { Main.NewText("Action 3"); });
-            yield return new("Long menu item name", () => { Main.NewText("Action 3"); });
+            yield return new(
+                "Delete",
+                "Delete marker", 
+                () => { Main.NewText("Not yet implemented"); });
+            yield return new(
+                "Pin",
+                "Pin/unpin marker\nPinned markers are always visible on the map", 
+                () => { Main.NewText("Not yet implemented"); });
+            yield return new(
+                "Teleport",
+                "Teleport to the marker\nWill consume one Marker Teleport Potion",
+                () => { Main.NewText("Not yet implemented"); });
         }
 
         internal static void Draw()
@@ -213,6 +282,6 @@ namespace MapMarkers.UI
                 UI.Update(time);
         }
 
-        public record struct MenuItemDefinition(string Text, Action Callback);
+        public record struct MenuItemDefinition(string Text, string Description, Action Callback);
     }
 }
