@@ -8,6 +8,7 @@ using Terraria.Audio;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.UI;
+using Terraria.GameInput;
 
 namespace MapMarkers.UI
 {
@@ -48,6 +49,9 @@ namespace MapMarkers.UI
             if (!Helper.IsFullscreenMap)
                 return;
 
+            if (State is null)
+                InitInterface();
+
             if (marker is null || Marker is not null && Marker.Id == marker.Id)
             {
                 SoundEngine.PlaySound(SoundID.MenuClose);
@@ -57,9 +61,6 @@ namespace MapMarkers.UI
             }
 
             Marker = marker;
-
-            if (State is null)
-                InitInterface();
 
             UI.IsVisible = true;
 
@@ -257,7 +258,11 @@ namespace MapMarkers.UI
         internal static void Update(GameTime time)
         {
             if (!Helper.IsFullscreenMap && UI.IsVisible)
+            {
                 UI.IsVisible = false;
+                Marker = null;
+                SoundEngine.PlaySound(SoundID.MenuClose);
+            }
 
             if (Keybinds.GetKeybind(KeybindId.Debug_ReloadInterface) == KeybindState.JustPressed)
                 InitInterface();
@@ -266,9 +271,15 @@ namespace MapMarkers.UI
             UIElement? e = UI.IsVisible ? State?.GetElementAt(Main.MouseScreen) : null;
             Hovering = e is not null and not UIState;
 
-            if (UI.IsVisible && Keybinds.MouseLeftKey == KeybindState.Pressed && State is not null && !Hovering)
+            if (UI.IsVisible && State is not null && !Hovering && (
+                Keybinds.MouseLeftKey == KeybindState.Pressed
+                || PlayerInput.ScrollWheelDelta != 0
+                || Main.LocalPlayer.mapZoomIn
+                || Main.LocalPlayer.mapZoomOut
+                ))
             {
                 UI.IsVisible = false;
+                Marker = null;
                 SoundEngine.PlaySound(SoundID.MenuClose);
             }
 

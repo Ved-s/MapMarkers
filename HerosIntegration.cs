@@ -48,8 +48,7 @@ namespace MapMarkers
 
         void ILoadable.Load(Mod mod)
         {
-            Mod? heros = ModLoader.GetMod("HEROsMod");
-            if (heros is null)
+            if (!ModLoader.TryGetMod("HEROsMod", out Mod? heros))
                 return;
 
             Type? tp = heros.Code.GetType("HEROsMod.HEROsModServices.Teleporter");
@@ -68,8 +67,6 @@ namespace MapMarkers
             TeleporterServiceHasPermissionToUse = null;
             TeleporterServiceInstance = null;
         }
-
-
 
         void PauseFullscreenMapTP()
         {
