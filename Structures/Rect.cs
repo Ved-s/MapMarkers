@@ -53,6 +53,8 @@ namespace MapMarkers.Structures
             return rect.Left < Right && Left < rect.Right && rect.Top < Bottom && Top < rect.Bottom;
         }
 
+        public Rect Floor() => new((float)Math.Floor(X), (float)Math.Floor(Y), (float)Math.Floor(Width), (float)Math.Floor(Height));
+
         public static implicit operator Rect(Rectangle rect) => new(rect.X, rect.Y, rect.Width, rect.Height);
         public static explicit operator Rectangle(Rect rect) => new((int)rect.X, (int)rect.Y, (int)rect.Width, (int)rect.Height);
     }

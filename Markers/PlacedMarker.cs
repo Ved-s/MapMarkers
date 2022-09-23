@@ -7,6 +7,8 @@ using ReLogic.Content;
 using Terraria.ID;
 using Terraria.ModLoader.IO;
 using MapMarkers.Structures;
+using System.Collections.Generic;
+using MapMarkers.UI;
 
 namespace MapMarkers.Markers
 {
@@ -74,6 +76,11 @@ namespace MapMarkers.Markers
                 DisplayItem = ItemIO.Load(item);
             if (tag.TryGet("pos", out Vector2 pos))
                 Position = pos;
+        }
+
+        public override IEnumerable<MarkerMenu.MenuItemDefinition> GetMenuItems()
+        {
+            yield return new MarkerMenu.MenuItemDefinition("Edit", "Edit this marker", () => MarkerEditMenu.Show(this));
         }
     }
 }

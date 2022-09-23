@@ -6,6 +6,8 @@ using Terraria.ModLoader.IO;
 using Steamworks;
 using System.Text;
 using System.Data;
+using System.Collections.Generic;
+using static MapMarkers.UI.MarkerMenu;
 
 namespace MapMarkers
 {
@@ -103,6 +105,8 @@ namespace MapMarkers
         /// Called when loading this marker's data
         /// </summary>
         public virtual void LoadData(TagCompound tag) { }
+
+        public virtual IEnumerable<MenuItemDefinition> GetMenuItems() { yield break; }
 
         public virtual MapMarker CreateInstance() => (MapMarker)Activator.CreateInstance(GetType())!;
     }

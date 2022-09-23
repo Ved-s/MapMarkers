@@ -19,10 +19,7 @@ namespace MapMarkers
         public static MouseState OldMouseState;
         public static MouseState CurrentMouseState;
 
-        internal static Dictionary<KeybindId, Keys[]> KeybindKeys = new()
-        {
-            [KeybindId.Debug_ReloadInterface] = new Keys[] { Keys.LeftControl, Keys.LeftShift, Keys.R }
-        };
+        public static Keybind DebugReloadInterfaceKeybind { get; } = new(Keys.LeftControl, Keys.LeftShift, Keys.R);
 
         public static KeybindState MouseLeftKey => GetState(CurrentMouseState.LeftButton == ButtonState.Pressed, OldMouseState.LeftButton == ButtonState.Pressed);
         public static KeybindState MouseMiddleKey => GetState(CurrentMouseState.MiddleButton == ButtonState.Pressed, OldMouseState.MiddleButton == ButtonState.Pressed);
@@ -49,11 +46,8 @@ namespace MapMarkers
             return (KeybindState)(newPressed.ToInt() << 1 | oldPressed.ToInt());
         }
 
-        public static KeybindState GetKeybind(KeybindId keybind)
+        public static KeybindState GetKeybind(Keys[] keys)
         {
-            if (!KeybindKeys.TryGetValue(keybind, out Keys[]? keys))
-                return KeybindState.Released;
-
             KeybindState state = KeybindState.Pressed;
 
             foreach (Keys key in keys)

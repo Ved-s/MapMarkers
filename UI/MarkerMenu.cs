@@ -241,18 +241,24 @@ namespace MapMarkers.UI
 
         internal static IEnumerable<MenuItemDefinition> EnumerateMenuItems()
         {
-            yield return new(
-                "Delete",
-                "Delete marker", 
-                () => { Main.NewText("Not yet implemented"); });
-            yield return new(
-                "Pin",
-                "Pin/unpin marker\nPinned markers are always visible on the map", 
-                () => { Main.NewText("Not yet implemented"); });
-            yield return new(
-                "Teleport",
-                "Teleport to the marker\nWill consume one Marker Teleport Potion",
-                () => { Main.NewText("Not yet implemented"); });
+            if (Marker is not null)
+                foreach (MenuItemDefinition def in Marker.GetMenuItems())
+                    yield return def;
+
+            yield break;
+
+            //yield return new(
+            //    "Delete",
+            //    "Delete marker", 
+            //    () => { Main.NewText("Not yet implemented"); });
+            //yield return new(
+            //    "Pin",
+            //    "Pin/unpin marker\nPinned markers are always visible on the map", 
+            //    () => { Main.NewText("Not yet implemented"); });
+            //yield return new(
+            //    "Teleport",
+            //    "Teleport to the marker\nWill consume one Marker Teleport Potion",
+            //    () => { Main.NewText("Not yet implemented"); });
         }
 
         internal static void Draw()
@@ -270,7 +276,7 @@ namespace MapMarkers.UI
                 SoundEngine.PlaySound(SoundID.MenuClose);
             }
 
-            if (Keybinds.GetKeybind(KeybindId.Debug_ReloadInterface) == KeybindState.JustPressed)
+            if (Keybinds.DebugReloadInterfaceKeybind.State == KeybindState.JustPressed)
                 InitInterface();
 
             PrevHovering = Hovering;

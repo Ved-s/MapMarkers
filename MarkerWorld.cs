@@ -7,6 +7,7 @@ using System.Linq;
 using Terraria;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
+using Terraria.UI;
 
 namespace MapMarkers
 {
@@ -17,21 +18,11 @@ namespace MapMarkers
         public override void OnWorldLoad()
         {
             MapMarkers.MarkerGuids.Clear();
-            //MapMarkers.Markers.Clear();
-            //
-            //Random rng = new(1);
-            //
-            //for (int i = 0; i < 100; i++)
-            //{
-            //    PlacedMarker marker = new();
-            //    marker.DisplayItem.SetDefaults(rng.Next(1, ItemLoader.ItemCount));
-            //    marker.Position = new(rng.Next(Main.maxTilesX), rng.Next(Main.maxTilesY));
-            //    marker.DisplayName = ((int)marker.Position.X).ToString("x") + ((int)marker.Position.Y).ToString("x");
-            //
-            //    MapMarkers.Markers[marker.Id] = marker;
-            //}
+        }
 
-            base.OnWorldLoad();
+        public override void OnWorldUnload()
+        {
+            MapMarkers.Markers.RemoveWhere(kvp => kvp.Value.SaveLocation != SaveLocation.Client);
         }
 
         public override void SaveWorldData(TagCompound tag)
@@ -55,14 +46,17 @@ namespace MapMarkers
                 }
         }
 
-        public override void OnWorldUnload()
+        public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
         {
-            MapMarkers.Markers.RemoveWhere(kvp => kvp.Value.SaveLocation != SaveLocation.Client);
+            int index = layers.FindIndex(l => l.Name == "Vanilla: Mouse Text");
+            if (index >= 0)
+                layers.Insert(index, new LegacyGameInterfaceLayer("MapMarkers: UI", MarkerEditMenu.Draw, InterfaceScaleType.UI));
         }
 
         public override void UpdateUI(GameTime gameTime)
         {
             MarkerMenu.Update(gameTime);
+            MarkerEditMenu.Update(gameTime);
         }
 
         public override void PostUpdateInput()

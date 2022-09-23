@@ -1,4 +1,5 @@
-﻿using MapMarkers.Structures;
+﻿using Terraria.UI;
+using MapMarkers.Structures;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -90,5 +91,7 @@ namespace MapMarkers
             if (builder.Length > 0)
                 yield return builder.ToString();
         }
+
+        public static Rect ToRect(this CalculatedStyle style) => new(style.X, style.Y, style.Width, style.Height);
     }
 }
