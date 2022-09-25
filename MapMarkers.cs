@@ -65,5 +65,18 @@ namespace MapMarkers
 
             return marker;
         }
+
+
+        // TODO when Netcode: add net handling
+
+        public void RemoveMarker(MapMarker marker)
+        {
+            Markers.Remove(marker.Id);
+        }
+
+        public void MoveMarker(MapMarker marker, Vector2 pos)
+        {
+            marker.Position = pos;
+        }
     }
 }

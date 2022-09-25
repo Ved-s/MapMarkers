@@ -20,6 +20,17 @@ namespace MapMarkers.Markers
             set { displayItem = value; ItemTextureCache = null; }
         }
 
+        public int DisplayItemType 
+        {
+            get => DisplayItem.type;
+            set 
+            {
+                Item i = new();
+                i.SetDefaults(value);
+                DisplayItem.type = value;
+            }
+        }
+
         public override SaveLocation SaveLocation => SaveLocation.Client;
         public override Vector2 Size => ItemFrame.Size();
 

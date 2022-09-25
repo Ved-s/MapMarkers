@@ -38,6 +38,8 @@ namespace MapMarkers.UI
 
         static PlacedMarker? Marker;
 
+        public static bool Visible => State is not null && UI.IsVisible;
+
         static bool Hovering = false;
         static bool PrevHovering = false;
 
@@ -248,12 +250,7 @@ namespace MapMarkers.UI
             button.OnMouseOver += (ev, el) => { (el as UIPanel)!.BackgroundColor = new Color(80, 90, 160) * 0.7f; SoundEngine.PlaySound(SoundID.MenuTick); };
             button.OnMouseOut += (ev, el) => (el as UIPanel)!.BackgroundColor = new Color(63, 82, 151) * 0.7f;
 
-            button.OnClick += (ev, el) =>
-            {
-                Marker = null;
-                UI.IsVisible = false;
-                SoundEngine.PlaySound(SoundID.MenuClose);
-            };
+            button.OnClick += (ev, el) => Hide();
 
             State.Append(button);
         }
@@ -440,6 +437,13 @@ namespace MapMarkers.UI
             if (!Initialized)
                 InitInterface();
             UpdateIMarkerInterface();
+            SoundEngine.PlaySound(SoundID.MenuOpen);
+        }
+        public static void Hide()
+        {
+            Marker = null;
+            UI.IsVisible = false;
+            SoundEngine.PlaySound(SoundID.MenuClose);
         }
 
         public static bool Draw()
@@ -474,6 +478,9 @@ namespace MapMarkers.UI
 
             if (!UI.IsVisible)
                 return;
+
+            if (Helper.IsFullscreenMap || Helper.IsOverlayMap)
+                Hide();
 
             if (Keybinds.DebugReloadInterfaceKeybind.State == KeybindState.JustPressed)
             {

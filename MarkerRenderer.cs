@@ -34,6 +34,7 @@ namespace MapMarkers
         const float MarkerHoverScale = 1.1f;
 
         private Effect Highlighter = null!;
+        private MapMarker? GrabbedMarker;
 
         internal void UpdateMarkers()
         {
@@ -42,6 +43,8 @@ namespace MapMarkers
             VisibleMarkers.Clear();
 
             Rect mapRect = Helper.MapVisibleScreenRect;
+            if (GrabbedMarker is not null && (!Helper.IsFullscreenMap || Keybinds.MouseMiddleKey == KeybindState.Released || !GrabbedMarker.CanMove))
+                GrabbedMarker = null;
 
             foreach (MapMarker marker in MapMarkers.Markers.Values)
             {
@@ -50,7 +53,13 @@ namespace MapMarkers
                 screenRect.Location -= screenRect.Size / 2;
 
                 marker.ScreenRect = screenRect;
-                marker.Hovered = screenRect.Contains(Main.MouseScreen);
+                if (!screenRect.Intersects(mapRect))
+                {
+                    marker.Hovered = false;
+                    continue;
+                }
+
+                marker.Hovered = GrabbedMarker is null ? screenRect.Contains(Main.MouseScreen) : marker.Id == GrabbedMarker.Id;
 
                 if (!MarkerMenu.Hovering && marker.Hovered && (HoveredMarker is null || HoveredMarker.DrawTopMost == marker.DrawTopMost || !HoveredMarker.DrawTopMost && marker.DrawTopMost))
                 {
@@ -140,20 +149,60 @@ namespace MapMarkers
 
         void HoverMarker(MapMarker marker, ref string mouseText)
         {
+            if (GrabbedMarker is not null && Helper.IsFullscreenMap)
+            {
+                if (marker.Id != GrabbedMarker.Id)
+                    return;
+
+                MapMarkers.MoveMarker(marker, Helper.ScreenToMap(Main.MouseScreen));
+                return;
+            }
+
+            if (Helper.IsFullscreenMap && Keybinds.GetKey(Keys.Delete) == KeybindState.JustPressed)
+            {
+                MapMarkers.RemoveMarker(marker);
+                return;
+            }
+
             MouseTextBuilder.Clear();
 
             if (mouseText.Length > 0)
                 MouseTextBuilder.Append("\n\n");
 
             MouseTextBuilder.AppendLine(marker.DisplayName);
-            MouseTextBuilder.AppendFormat("{0} [{1}]", marker.GetType().FullName, MapMarkers.MarkerGuids.GetShortGuid(marker.Id));
+
+            if (Keybinds.ShiftKey == KeybindState.Pressed)
+            {
+                MouseTextBuilder.AppendFormat("[c/aaaaaa:{0} ({1}) [{2}][c/bbbbbb:]]\n", marker.Name, marker.Mod.Name, MapMarkers.MarkerGuids.GetShortGuid(marker.Id));
+
+                if (Helper.IsFullscreenMap)
+                {
+                    MouseTextBuilder.AppendLine("[c/bbbb22:Right click] marker to open menu");
+
+                    if (marker.CanMove)
+                        MouseTextBuilder.AppendLine("Move marker with [c/bbbb22:middle mouse button]");
+                }
+                else 
+                {
+                    MouseTextBuilder.AppendLine("Marker actions are available only on [c/22bbbb:fullscreen map]");
+                }
+            }
+            else 
+            {
+                MouseTextBuilder.AppendLine("Hold [c/bbbb22:Shift] for info");
+            }
 
             marker.Hover(MouseTextBuilder);
 
             mouseText += MouseTextBuilder.ToString();
 
-            if (Keybinds.MouseRightKey == KeybindState.JustPressed)
-                MarkerMenu.Show(marker);
+            if (Helper.IsFullscreenMap )
+            {
+                if (Keybinds.MouseRightKey == KeybindState.JustPressed)
+                    MarkerMenu.Show(marker);
+                else if (Keybinds.MouseMiddleKey == KeybindState.JustPressed && marker.CanMove)
+                    GrabbedMarker = marker;
+            }
         }
 
         public void PrepareRenderTarget(GraphicsDevice device, SpriteBatch spriteBatch)

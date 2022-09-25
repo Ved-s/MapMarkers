@@ -27,6 +27,18 @@ namespace MapMarkers
         public static KeybindState MouseX1Key => GetState(CurrentMouseState.XButton1 == ButtonState.Pressed, OldMouseState.XButton1 == ButtonState.Pressed);
         public static KeybindState MouseX2Key => GetState(CurrentMouseState.XButton2 == ButtonState.Pressed, OldMouseState.XButton2 == ButtonState.Pressed);
 
+        public static readonly Keys[] AnyCtrlKey = new[]  { Keys.LeftControl, Keys.RightControl };
+        public static readonly Keys[] AnyAltKey = new[]   { Keys.LeftAlt, Keys.RightAlt };
+        public static readonly Keys[] AnyShiftKey = new[] { Keys.LeftShift, Keys.RightShift };
+        public static readonly Keys[] AnyWinKey = new[]   { Keys.LeftWindows, Keys.RightWindows };
+        public static readonly Keys[] AnyModKey = new[]   { Keys.LeftShift, Keys.RightShift, Keys.LeftAlt, Keys.RightAlt, Keys.LeftControl, Keys.RightControl, Keys.LeftWindows, Keys.RightWindows };
+
+        public static KeybindState CtrlKey => GetAnyKey(AnyCtrlKey);
+        public static KeybindState AltKey => GetAnyKey(AnyAltKey);
+        public static KeybindState ShiftKey => GetAnyKey(AnyShiftKey);
+        public static KeybindState WinKey => GetAnyKey(AnyWinKey);
+        public static KeybindState ModKey => GetAnyKey(AnyModKey);
+
         internal static void Update()
         {
             OldState = CurrentState;
@@ -34,6 +46,29 @@ namespace MapMarkers
 
             OldMouseState = CurrentMouseState;
             CurrentMouseState = Mouse.GetState();
+        }
+
+        public static KeybindState GetAnyKey(Keys[] keys)
+        {
+            KeybindState state = KeybindState.Released;
+
+            foreach (Keys key in keys)
+            {
+                KeybindState keyState = GetKey(key);
+                if (keyState == KeybindState.Pressed)
+                    return KeybindState.Pressed;
+
+                if (keyState == KeybindState.Released)
+                    continue;
+
+                if (keyState == KeybindState.JustPressed)
+                    state = KeybindState.JustPressed;
+
+                if (keyState == KeybindState.JustReleased && state != KeybindState.JustPressed)
+                    state = KeybindState.JustReleased;
+            }
+
+            return state;
         }
 
         public static KeybindState GetKey(Keys key)

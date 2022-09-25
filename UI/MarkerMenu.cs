@@ -9,11 +9,14 @@ using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.UI;
 using Terraria.GameInput;
+using Terraria.ModLoader;
 
 namespace MapMarkers.UI
 {
     public static class MarkerMenu
     {
+        internal static MapMarkers MapMarkers => ModContent.GetInstance<MapMarkers>();
+
         static UserInterface UI = new();
 
         public static MapMarker? Marker;
@@ -83,6 +86,12 @@ namespace MapMarkers.UI
             MapScaleUICache = Main.mapFullscreenScale;
 
             SoundEngine.PlaySound(SoundID.MenuOpen);
+        }
+        public static void Hide()
+        {
+            UI.IsVisible = false;
+            Marker = null;
+            SoundEngine.PlaySound(SoundID.MenuClose);
         }
 
         internal static void InitInterface()
@@ -245,12 +254,12 @@ namespace MapMarkers.UI
                 foreach (MenuItemDefinition def in Marker.GetMenuItems())
                     yield return def;
 
-            yield break;
+            if (Marker!.CanDelete)
+                yield return new(
+                    "Delete",
+                    "[Del] Delete marker", 
+                    () => { MapMarkers.RemoveMarker(Marker!); Hide(); });
 
-            //yield return new(
-            //    "Delete",
-            //    "Delete marker", 
-            //    () => { Main.NewText("Not yet implemented"); });
             //yield return new(
             //    "Pin",
             //    "Pin/unpin marker\nPinned markers are always visible on the map", 
@@ -270,11 +279,7 @@ namespace MapMarkers.UI
         internal static void Update(GameTime time)
         {
             if (!Helper.IsFullscreenMap && UI.IsVisible)
-            {
-                UI.IsVisible = false;
-                Marker = null;
-                SoundEngine.PlaySound(SoundID.MenuClose);
-            }
+                Hide();
 
             if (Keybinds.DebugReloadInterfaceKeybind.State == KeybindState.JustPressed)
                 InitInterface();
@@ -283,24 +288,26 @@ namespace MapMarkers.UI
             UIElement? e = UI.IsVisible ? State?.GetElementAt(Main.MouseScreen) : null;
             Hovering = e is not null and not UIState;
 
-            if (UI.IsVisible && 
-                (State is not null && !Hovering && Keybinds.MouseLeftKey == KeybindState.Pressed
-                || MapPosUICache != Main.mapFullscreenPos
-                || MapScaleUICache != Main.mapFullscreenScale))
-            {
-                UI.IsVisible = false;
-                Marker = null;
-                SoundEngine.PlaySound(SoundID.MenuClose);
-            }
-
-            if (!PrevHovering && Hovering)
-                HerosIntegration.Instance.AllowTp = false;
-
-            if (PrevHovering && !Hovering)
-                HerosIntegration.Instance.AllowTp = true;
-
             if (UI.IsVisible)
-                UI.Update(time);
+            {
+                if (Marker is null
+                    || !MapMarkers.Markers.ContainsKey(Marker.Id)
+                    ||(State is not null && !Hovering && Keybinds.MouseLeftKey == KeybindState.Pressed
+                    || MapPosUICache != Main.mapFullscreenPos
+                    || MapScaleUICache != Main.mapFullscreenScale))
+                {
+                    Hide();
+                    return;
+                }
+
+                if (!PrevHovering && Hovering)
+                    HerosIntegration.Instance.AllowTp = false;
+
+                if (PrevHovering && !Hovering)
+                    HerosIntegration.Instance.AllowTp = true;
+
+                    UI.Update(time);
+            }
         }
 
         public record struct MenuItemDefinition(string Text, string Description, Action Callback);

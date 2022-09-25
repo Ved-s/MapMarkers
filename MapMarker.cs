@@ -35,6 +35,9 @@ namespace MapMarkers
         /// </summary>
         public virtual string DisplayName { get; set; } = "Unnamed marker";
 
+        public virtual bool CanDelete { get; set; } = true;
+        public virtual bool CanMove { get; set; } = true;
+
         /// <summary>
         /// Marker id
         /// </summary>
