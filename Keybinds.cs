@@ -39,6 +39,9 @@ namespace MapMarkers
         public static KeybindState WinKey => GetAnyKey(AnyWinKey);
         public static KeybindState ModKey => GetAnyKey(AnyModKey);
 
+        // TODO: use this
+        public static bool InputBlocked => Main.blockInput || Main.editChest || Main.editSign || Main.drawingPlayerChat;
+
         internal static void Update()
         {
             OldState = CurrentState;

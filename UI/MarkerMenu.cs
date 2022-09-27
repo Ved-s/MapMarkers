@@ -1,15 +1,14 @@
-﻿using Terraria.GameContent;
-using MapMarkers.Structures;
+﻿using MapMarkers.Structures;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using Terraria;
 using Terraria.Audio;
+using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
-using Terraria.UI;
-using Terraria.GameInput;
 using Terraria.ModLoader;
+using Terraria.UI;
 
 namespace MapMarkers.UI
 {
@@ -30,10 +29,10 @@ namespace MapMarkers.UI
         public static UIAutoLabel? DescriptionLabel;
         public static UIPanel? DescriptionPanel;
 
-        public static string DescriptionText 
+        public static string DescriptionText
         {
             get => DescriptionLabel?.Text ?? "";
-            set 
+            set
             {
                 if (DescriptionLabel is null || Panel is null)
                     return;
@@ -208,7 +207,7 @@ namespace MapMarkers.UI
                     Text = def.Text
                 };
                 Action callback = def.Callback;
-                label.OnClick += (ev, el) => callback();
+                label.OnClick += (ev, el) => { callback(); Hide(); };
 
                 labelPanel.Append(label);
 
@@ -250,15 +249,29 @@ namespace MapMarkers.UI
 
         internal static IEnumerable<MenuItemDefinition> EnumerateMenuItems()
         {
-            if (Marker is not null)
-                foreach (MenuItemDefinition def in Marker.GetMenuItems())
-                    yield return def;
+            if (Marker is null)
+                yield break;
 
-            if (Marker!.CanDelete)
+            foreach (MenuItemDefinition def in Marker.GetMenuItems())
+                yield return def;
+
+            if (Marker.CanDelete(Main.myPlayer))
                 yield return new(
                     "Delete",
-                    "[Del] Delete marker", 
-                    () => { MapMarkers.RemoveMarker(Marker!); Hide(); });
+                    "[Del] Delete marker",
+                    () => { MapMarkers.RemoveMarker(Marker); });
+
+            bool pin = MapMarkers.PinnedMarkers.Contains(Marker.Id);
+            yield return new(
+                pin ? "Unpin" : "Pin",
+                pin ? "Unpin marker" : "Pin marker.\nPinned markers are always visible on the map.",
+                () =>
+                {
+                    if (MapMarkers.PinnedMarkers.Contains(Marker.Id))
+                        MapMarkers.PinnedMarkers.Remove(Marker.Id);
+                    else
+                        MapMarkers.PinnedMarkers.Add(Marker.Id);
+                });
 
             //yield return new(
             //    "Pin",
@@ -292,7 +305,7 @@ namespace MapMarkers.UI
             {
                 if (Marker is null
                     || !MapMarkers.Markers.ContainsKey(Marker.Id)
-                    ||(State is not null && !Hovering && Keybinds.MouseLeftKey == KeybindState.Pressed
+                    || (State is not null && !Hovering && Keybinds.MouseLeftKey == KeybindState.Pressed
                     || MapPosUICache != Main.mapFullscreenPos
                     || MapScaleUICache != Main.mapFullscreenScale))
                 {
@@ -306,7 +319,7 @@ namespace MapMarkers.UI
                 if (PrevHovering && !Hovering)
                     HerosIntegration.Instance.AllowTp = true;
 
-                    UI.Update(time);
+                UI.Update(time);
             }
         }
 

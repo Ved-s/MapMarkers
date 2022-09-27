@@ -24,6 +24,8 @@ namespace MapMarkers
         /// </summary>
         public Dictionary<Guid, MapMarker> Markers { get; } = new();
 
+        public HashSet<Guid> PinnedMarkers { get; } = new();
+
         public ShortGuids MarkerGuids { get; } = new(2);
 
         public static TagCompound SaveMarker(MapMarker marker)

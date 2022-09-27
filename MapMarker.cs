@@ -35,9 +35,6 @@ namespace MapMarkers
         /// </summary>
         public virtual string DisplayName { get; set; } = "Unnamed marker";
 
-        public virtual bool CanDelete { get; set; } = true;
-        public virtual bool CanMove { get; set; } = true;
-
         /// <summary>
         /// Marker id
         /// </summary>
@@ -73,6 +70,7 @@ namespace MapMarkers
 
         public bool Hovered { get; internal set; }
         public Rect ScreenRect { get; internal set; }
+        public bool Pinned { get; internal set; }
 
         internal Mod InstanceMod = null!;
 
@@ -112,6 +110,9 @@ namespace MapMarkers
         public virtual IEnumerable<MenuItemDefinition> GetMenuItems() { yield break; }
 
         public virtual MapMarker CreateInstance() => (MapMarker)Activator.CreateInstance(GetType())!;
+
+        public virtual bool CanMove(int whoAmI) => true;
+        public virtual bool CanDelete(int whoAmI) => true;
     }
 
     [Autoload(false)]

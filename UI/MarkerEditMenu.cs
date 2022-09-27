@@ -14,6 +14,8 @@ namespace MapMarkers.UI
 {
     public static class MarkerEditMenu
     {
+        internal static MapMarkers MapMarkers => ModContent.GetInstance<MapMarkers>();
+
         static UserInterface UI = new();
 
         static UIState? State;
@@ -151,6 +153,16 @@ namespace MapMarkers.UI
                 Text = "Pinned",
                 BackColor = new(32, 32, 64, 200)
             });
+            PinnedSwitch.StateChangedByUser += () =>
+            {
+                if (Marker is null)
+                    return;
+
+                if (PinnedSwitch?.State ?? true)
+                    MapMarkers.PinnedMarkers.Add(Marker.Id);
+                else
+                    MapMarkers.PinnedMarkers.Remove(Marker.Id);
+            };
         }
         static void InitMPVisibility(UIElement box)
         {
@@ -407,16 +419,23 @@ namespace MapMarkers.UI
             element.OnMouseOut += (ev, el) => Description.Text = "";
         }
 
-        static void UpdateIMarkerInterface()
+        static void UpdateMarkerInterface()
         {
             NameInput?.SetText(Marker?.DisplayName!);
 
             if (ItemDisplay is not null)
                 ItemDisplay.Item = Marker?.DisplayItem;
 
-            // TODO: Enabled and pinned markers
+            // TODO: Enabled markers
             EnabledSwitch?.Remove();
-            PinnedSwitch?.Remove();
+
+            if (PinnedSwitch is not null)
+            {
+                PinnedSwitch.Width = new(0, 1);
+                PinnedSwitch.Left = new(0, 0);
+                PinnedSwitch.State = Marker is not null && MapMarkers.PinnedMarkers.Contains(Marker.Id);
+            }
+
 
             // TODO: Multiplayer
             MultiplayerLabel?.Remove();
@@ -436,7 +455,7 @@ namespace MapMarkers.UI
 
             if (!Initialized)
                 InitInterface();
-            UpdateIMarkerInterface();
+            UpdateMarkerInterface();
             SoundEngine.PlaySound(SoundID.MenuOpen);
         }
         public static void Hide()
@@ -486,7 +505,7 @@ namespace MapMarkers.UI
             {
                 InitInterface();
                 if (Marker is not null)
-                    UpdateIMarkerInterface();
+                    UpdateMarkerInterface();
             }
 
             PrevHovering = Hovering;

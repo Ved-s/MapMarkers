@@ -93,5 +93,22 @@ namespace MapMarkers
         }
 
         public static Rect ToRect(this CalculatedStyle style) => new(style.X, style.Y, style.Width, style.Height);
+
+        public static Vector2 ClampToRect(this Vector2 vector, Rect rect)
+        {
+            if (vector.X < rect.Left)
+                vector.X = rect.Left;
+
+            if (vector.X > rect.Right)
+                vector.X = rect.Right;
+
+            if (vector.Y < rect.Top)
+                vector.Y = rect.Top;
+                        
+            if (vector.Y > rect.Bottom)
+                vector.Y = rect.Bottom;
+
+            return vector;
+        }
     }
 }

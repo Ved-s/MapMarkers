@@ -24,15 +24,24 @@ namespace MapMarkers
                 .ToList();
 
             tag["markers"] = CurrentMarkerData;
+            tag["pinned"] = MapMarkers.PinnedMarkers.Select(g => g.ToByteArray()).ToList();
 
             if (Main.gameMenu) // Player exiting to menu
+            {
                 MapMarkers.Markers.RemoveWhere(kvp => kvp.Value.SaveLocation != SaveLocation.Server);
+                MapMarkers.PinnedMarkers.Clear();
+            }
         }
 
         public override void LoadData(TagCompound tag)
         {
             if (tag.TryGet("markers", out TagCompound markers))
                 CurrentMarkerData = markers;
+            if (tag.TryGet("pinned", out List<byte[]> pinned))
+            {
+                MapMarkers.PinnedMarkers.Clear();
+                MapMarkers.PinnedMarkers.UnionWith(pinned.Select(b => new Guid(b)));
+            }
         }
 
         public override void OnEnterWorld(Player player)

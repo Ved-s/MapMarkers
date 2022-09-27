@@ -19,6 +19,12 @@ namespace MapMarkers.Structures
         public float Right => X + Width;
         public float Bottom => Y + Height;
 
+        public Vector2 Center 
+        {
+            get => Location + Size / 2;
+            set => Location = value - Size / 2;
+        }
+
         public Vector2 Location 
         {
             get => new(X, Y);

@@ -6,12 +6,10 @@ using Microsoft.Xna.Framework.Input;
 using ReLogic.Content;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Terraria;
 using Terraria.GameContent;
+using Terraria.Localization;
 using Terraria.ModLoader;
 
 namespace MapMarkers
@@ -36,6 +34,8 @@ namespace MapMarkers
         private Effect Highlighter = null!;
         private MapMarker? GrabbedMarker;
 
+        private bool MarkerHoverBlocked = false;
+
         internal void UpdateMarkers()
         {
             PrevHoveredMarker = HoveredMarker;
@@ -43,17 +43,39 @@ namespace MapMarkers
             VisibleMarkers.Clear();
 
             Rect mapRect = Helper.MapVisibleScreenRect;
-            if (GrabbedMarker is not null && (!Helper.IsFullscreenMap || Keybinds.MouseMiddleKey == KeybindState.Released || !GrabbedMarker.CanMove))
+            if (GrabbedMarker is not null && (!Helper.IsFullscreenMap || Keybinds.MouseMiddleKey == KeybindState.Released || !GrabbedMarker.CanMove(Main.myPlayer)))
                 GrabbedMarker = null;
 
             foreach (MapMarker marker in MapMarkers.Markers.Values)
             {
                 Vector2 markerCenter = Helper.MapToScreen(marker.Position);
-                Rect screenRect = new(markerCenter, marker.Size);
-                screenRect.Location -= screenRect.Size / 2;
-
+                Rect screenRect = new(default, marker.Size);
+                screenRect.Center = markerCenter;
+                marker.Pinned = MapMarkers.PinnedMarkers.Contains(marker.Id);
                 marker.ScreenRect = screenRect;
-                if (!screenRect.Intersects(mapRect))
+                if (marker.Pinned)
+                {
+                    Rect markerScreenBoundary = new(0, 0, Main.screenWidth, Main.screenHeight);
+                    markerScreenBoundary.Location += screenRect.Size / 2;
+                    markerScreenBoundary.Size -= screenRect.Size;
+
+                    Vector2 center = marker.ScreenRect.Center;
+
+                    if (!markerScreenBoundary.Contains(center))
+                    {
+                        center = center.ClampToRect(markerScreenBoundary);
+                        screenRect.Center = center;
+                        marker.ScreenRect = screenRect;
+                    }
+
+                    if (!mapRect.Contains(center))
+                    {
+                        center = center.ClampToRect(mapRect);
+                        screenRect.Center = center;
+                        marker.ScreenRect = screenRect;
+                    }
+                }
+                else if (!screenRect.Intersects(mapRect))
                 {
                     marker.Hovered = false;
                     continue;
@@ -69,16 +91,22 @@ namespace MapMarkers
                     HoveredMarker = marker;
                 }
 
-                bool visible = !marker.ClipToMap || marker.ScreenRect.Intersects(mapRect);
+                bool visible = marker.Pinned || !marker.ClipToMap || marker.ScreenRect.Intersects(mapRect);
                 if (visible)
                     VisibleMarkers.Add(marker);
             }
 
-            if (HoveredMarker is not null)
+            if (HoveredMarker is not null && PrevHoveredMarker is null && Keybinds.MouseRightKey == KeybindState.Pressed)
+                MarkerHoverBlocked = true;
+
+            else if (HoveredMarker is null)
+                MarkerHoverBlocked = false;
+
+            if (HoveredMarker is not null && !MarkerHoverBlocked)
             {
                 Rect screenRect = HoveredMarker.ScreenRect;
                 Vector2 newSize = screenRect.Size * MarkerHoverScale;
-                
+
                 screenRect.Location -= (newSize - screenRect.Size) / 2;
                 screenRect.Size = newSize;
                 HoveredMarker.ScreenRect = screenRect;
@@ -96,7 +124,7 @@ namespace MapMarkers
             Main.spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, Scissors, null, Main.UIScaleMatrix);
 
             foreach (MapMarker marker in VisibleMarkers)
-                if (marker.ClipToMap && marker.DrawTopMost == onTop)
+                if (marker.ClipToMap && !marker.Pinned && marker.DrawTopMost == onTop)
                     DrawMarker(marker);
 
             Main.spriteBatch.End();
@@ -104,10 +132,10 @@ namespace MapMarkers
             Main.spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullCounterClockwise, null, Main.UIScaleMatrix);
 
             foreach (MapMarker marker in VisibleMarkers)
-                if (!marker.ClipToMap && marker.DrawTopMost == onTop)
+                if (!marker.ClipToMap && marker.DrawTopMost == onTop || marker.Pinned && onTop)
                     DrawMarker(marker);
 
-            if (onTop && HoveredMarker is not null)
+            if (onTop && HoveredMarker is not null && !MarkerHoverBlocked)
                 HoverMarker(HoveredMarker, ref mouseText);
 
             Main.spriteBatch.End();
@@ -118,7 +146,7 @@ namespace MapMarkers
                 Highlighter.Parameters["texPix"].SetValue(new Vector2(2) / HoverMarkerRenderTarget.Size());
                 Highlighter.Parameters["outlineColor"].SetValue(HoveredMarker.OutlineColor.ToVector3());
                 Highlighter.CurrentTechnique.Passes[0].Apply();
-                Main.spriteBatch.Draw(HoverMarkerRenderTarget, HoveredMarker.ScreenRect.Location - new Vector2(2), 
+                Main.spriteBatch.Draw(HoverMarkerRenderTarget, HoveredMarker.ScreenRect.Location - new Vector2(2),
                     new Rectangle(0, 0, RenderTargetSize.X, RenderTargetSize.Y),
                     Color.White);
             }
@@ -131,7 +159,7 @@ namespace MapMarkers
 
             if (!MarkerMenu.Hovering)
             {
-                if (PrevHoveredMarker is null && HoveredMarker is not null)
+                if (PrevHoveredMarker is null && HoveredMarker is not null && !MarkerHoverBlocked)
                     HerosIntegration.Instance.AllowTp = false;
 
                 if (PrevHoveredMarker is not null && HoveredMarker is null)
@@ -139,15 +167,15 @@ namespace MapMarkers
             }
         }
 
-        void DrawMarker(MapMarker marker)
+        private void DrawMarker(MapMarker marker)
         {
-            if (IsReady && HoverMarkerRenderTarget is not null && RenderTargetMarkerId == marker.Id)
+            if (IsReady && HoverMarkerRenderTarget is not null && RenderTargetMarkerId == marker.Id && !MarkerHoverBlocked)
                 return;
 
             marker.Draw();
         }
 
-        void HoverMarker(MapMarker marker, ref string mouseText)
+        private void HoverMarker(MapMarker marker, ref string mouseText)
         {
             if (GrabbedMarker is not null && Helper.IsFullscreenMap)
             {
@@ -170,24 +198,29 @@ namespace MapMarkers
                 MouseTextBuilder.Append("\n\n");
 
             MouseTextBuilder.AppendLine(marker.DisplayName);
+            MouseTextBuilder.AppendLine(GetCenteredPosition(marker.Position));
 
             if (Keybinds.ShiftKey == KeybindState.Pressed)
             {
+                if (marker.Pinned)
+                    MouseTextBuilder.AppendLine("Pinned");
+
+
                 MouseTextBuilder.AppendFormat("[c/aaaaaa:{0} ({1}) [{2}][c/bbbbbb:]]\n", marker.Name, marker.Mod.Name, MapMarkers.MarkerGuids.GetShortGuid(marker.Id));
 
                 if (Helper.IsFullscreenMap)
                 {
                     MouseTextBuilder.AppendLine("[c/bbbb22:Right click] marker to open menu");
 
-                    if (marker.CanMove)
+                    if (marker.CanMove(Main.myPlayer))
                         MouseTextBuilder.AppendLine("Move marker with [c/bbbb22:middle mouse button]");
                 }
-                else 
+                else
                 {
                     MouseTextBuilder.AppendLine("Marker actions are available only on [c/22bbbb:fullscreen map]");
                 }
             }
-            else 
+            else
             {
                 MouseTextBuilder.AppendLine("Hold [c/bbbb22:Shift] for info");
             }
@@ -196,11 +229,11 @@ namespace MapMarkers
 
             mouseText += MouseTextBuilder.ToString();
 
-            if (Helper.IsFullscreenMap )
+            if (Helper.IsFullscreenMap)
             {
                 if (Keybinds.MouseRightKey == KeybindState.JustPressed)
                     MarkerMenu.Show(marker);
-                else if (Keybinds.MouseMiddleKey == KeybindState.JustPressed && marker.CanMove)
+                else if (Keybinds.MouseMiddleKey == KeybindState.JustPressed && marker.CanMove(Main.myPlayer))
                     GrabbedMarker = marker;
             }
         }
@@ -208,7 +241,7 @@ namespace MapMarkers
         public void PrepareRenderTarget(GraphicsDevice device, SpriteBatch spriteBatch)
         {
             IsReady = false;
-            if (HoveredMarker is null || Main.gameMenu)
+            if (HoveredMarker is null || Main.gameMenu || MarkerHoverBlocked)
                 return;
 
             Vector2 renderTargetMinSizeVec = HoveredMarker.ScreenRect.Size + new Vector2(4, 4);
@@ -252,6 +285,33 @@ namespace MapMarkers
         public void Unload()
         {
             Main.ContentThatNeedsRenderTargets.Remove(this);
+        }
+
+        public static string GetCenteredPosition(Vector2 pos)
+        {
+            int x = (int)(pos.X * 2f - Main.maxTilesX);
+            int y = (int)(pos.Y * 2f - Main.maxTilesY);
+
+            string xs =
+                (x > 0) ? Language.GetTextValue("GameUI.CompassEast", x) :
+                ((x >= 0) ? Language.GetTextValue("GameUI.CompassCenter") :
+                Language.GetTextValue("GameUI.CompassWest", -x));
+
+            int depth = (int)(pos.Y * 2) - (int)Main.worldSurface * 2;
+
+            float wsq = Main.maxTilesX / 4200;
+            wsq *= wsq;
+            float space = (pos.Y - (65f + 10f * wsq)) / ((float)Main.worldSurface / 5f);
+
+            string ys = (pos.Y > Main.maxTilesY - 204) ? Language.GetTextValue("GameUI.LayerUnderworld") :
+                (pos.Y > Main.rockLayer + 601) ? Language.GetTextValue("GameUI.LayerCaverns") :
+                ((depth > 0) ? Language.GetTextValue("GameUI.LayerUnderground") :
+                ((space < 1f) ? Language.GetTextValue("GameUI.LayerSpace") :
+                Language.GetTextValue("GameUI.LayerSurface")));
+            depth = Math.Abs(depth);
+            ys = ((depth != 0) ? Language.GetTextValue("GameUI.Depth", depth) : Language.GetTextValue("GameUI.DepthLevel")) + " " + ys;
+
+            return xs + "\n" + ys;
         }
     }
 }

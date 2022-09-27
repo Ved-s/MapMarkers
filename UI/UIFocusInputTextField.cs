@@ -21,15 +21,11 @@ namespace MapMarkers.UI
 
 		private int _textBlinkerState;
 
-		public bool UnfocusOnTab { get; internal set; }
-
 		public event Action? OnTextChange;
 
-		public event Action? OnUnfocus;
-
-		public event Action? OnTab;
-
 		public Color BackgroundColor = Color.White;
+
+		static char[] Whitespaces = new[] { '\t', ' ' };
 
 		public UIFocusInputTextField() 
 		{
@@ -48,7 +44,6 @@ namespace MapMarkers.UI
 			if (CurrentString != text)
 			{
 				CurrentString = text;
-				//OnTextChange?.Invoke();
 			}
 		}
 
@@ -56,6 +51,7 @@ namespace MapMarkers.UI
 		{
 			Main.clrInput();
 			Focused = true;
+			Main.blockInput = true;
 		}
 
 		public override void Update(GameTime gameTime)
@@ -64,7 +60,7 @@ namespace MapMarkers.UI
 			if (!ContainsPoint(MousePosition) && Main.mouseLeft)
 			{
 				Focused = false;
-				OnUnfocus?.Invoke();
+				Main.blockInput = false;
 			}
 			base.Update(gameTime);
 		}
@@ -84,23 +80,18 @@ namespace MapMarkers.UI
 				PlayerInput.WritingText = true;
 				Main.instance.HandleIME();
 				string newString = Main.GetInputText(CurrentString, false);
-				if (!Equals(CurrentString))
+				if (newString != CurrentString)
 				{
 					CurrentString = newString;
 					OnTextChange?.Invoke();
 				}
-				else
+				if (JustPressed(Keys.Back) && Main.inputText.PressingControl())
 				{
-					CurrentString = newString;
-				}
-				if (JustPressed(Keys.Tab))
-				{
-					if (UnfocusOnTab)
-					{
-						Focused = false;
-						OnUnfocus?.Invoke();
-					}
-					OnTab?.Invoke();
+					int index = CurrentString.LastIndexOfAny(Whitespaces);
+					if (index < 0)
+						CurrentString = "";
+					else 
+						CurrentString = CurrentString[..index];
 				}
 				int num = _textBlinkerCount + 1;
 				_textBlinkerCount = num;
