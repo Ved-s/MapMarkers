@@ -164,13 +164,10 @@ namespace MapMarkers
             if (onTop)
                 MarkerMenu.Draw();
 
-            if (!MarkerMenu.Hovering)
+            if (HoveredMarker is not null && !MarkerHoverBlocked || MarkerMenu.Hovering)
             {
-                if (PrevHoveredMarker is null && HoveredMarker is not null && !MarkerHoverBlocked)
-                    HerosIntegration.Instance.AllowTp = false;
-
-                if (PrevHoveredMarker is not null && HoveredMarker is null)
-                    HerosIntegration.Instance.AllowTp = true;
+                Main.mouseRight = false;
+                Main.mouseRightRelease = false;
             }
         }
 

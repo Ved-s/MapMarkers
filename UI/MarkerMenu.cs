@@ -313,13 +313,6 @@ namespace MapMarkers.UI
                     Hide();
                     return;
                 }
-
-                if (!PrevHovering && Hovering)
-                    HerosIntegration.Instance.AllowTp = false;
-
-                if (PrevHovering && !Hovering)
-                    HerosIntegration.Instance.AllowTp = true;
-
                 UI.Update(time);
             }
         }
