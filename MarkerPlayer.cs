@@ -50,7 +50,7 @@ namespace MapMarkers
             {
                 foreach (TagCompound markerData in markers)
                 {
-                    MapMarker? marker = MapMarkers.LoadMarker(markerData);
+                    MapMarker? marker = MapMarkers.LoadMarker(markerData, SaveLocation.Client);
                     if (marker is null)
                         continue;
 

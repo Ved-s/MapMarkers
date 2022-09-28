@@ -273,10 +273,11 @@ namespace MapMarkers.UI
                         MapMarkers.PinnedMarkers.Add(Marker.Id);
                 });
 
-            //yield return new(
-            //    "Pin",
-            //    "Pin/unpin marker\nPinned markers are always visible on the map", 
-            //    () => { Main.NewText("Not yet implemented"); });
+            yield return new(
+                Marker.Enabled ? "Disable" : "Enable",
+                Marker.Enabled ? "Disable marker\nDisabled markers are\ndisplayed only on\nfullscreen map and\nwhen Shift is pressed." : "Enable marker",
+                () => MapMarkers.SetMarkerEnabled(Marker, !Marker.Enabled));
+
             //yield return new(
             //    "Teleport",
             //    "Teleport to the marker\nWill consume one Marker Teleport Potion",

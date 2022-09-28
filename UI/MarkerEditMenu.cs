@@ -153,6 +153,7 @@ namespace MapMarkers.UI
                 Text = "Pinned",
                 BackColor = new(32, 32, 64, 200)
             });
+
             PinnedSwitch.StateChangedByUser += () =>
             {
                 if (Marker is null)
@@ -162,6 +163,14 @@ namespace MapMarkers.UI
                     MapMarkers.PinnedMarkers.Add(Marker.Id);
                 else
                     MapMarkers.PinnedMarkers.Remove(Marker.Id);
+            };
+
+            EnabledSwitch.StateChangedByUser += () =>
+            {
+                if (Marker is null)
+                    return;
+
+                MapMarkers.SetMarkerEnabled(Marker, EnabledSwitch?.State ?? false);
             };
         }
         static void InitMPVisibility(UIElement box)
@@ -426,15 +435,12 @@ namespace MapMarkers.UI
             if (ItemDisplay is not null)
                 ItemDisplay.Item = Marker?.DisplayItem;
 
-            // TODO: Enabled markers
-            EnabledSwitch?.Remove();
+            if (EnabledSwitch is not null)
+                EnabledSwitch.State = Marker is not null && Marker.Enabled;
 
             if (PinnedSwitch is not null)
-            {
-                PinnedSwitch.Width = new(0, 1);
-                PinnedSwitch.Left = new(0, 0);
                 PinnedSwitch.State = Marker is not null && MapMarkers.PinnedMarkers.Contains(Marker.Id);
-            }
+            
 
 
             // TODO: Multiplayer

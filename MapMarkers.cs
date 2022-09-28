@@ -34,12 +34,13 @@ namespace MapMarkers
             tag["id"] = marker.Id.ToByteArray();
             tag["name"] = marker.Name;
             tag["mod"] = marker.SaveModName;
+            tag["enabled"] = marker.Enabled;
             TagCompound data = new();
             marker.SaveData(data);
             tag["data"] = data;
             return tag;
         }
-        public static MapMarker? LoadMarker(TagCompound markerData)
+        public static MapMarker? LoadMarker(TagCompound markerData, SaveLocation currentLocation)
         {
             if (!markerData.TryGet("name", out string name) || !markerData.TryGet("mod", out string mod))
                 return null;
@@ -49,15 +50,18 @@ namespace MapMarkers
             Mod? modInst = ModLoader.GetMod(mod);
             if (modInst is null)
             {
-                marker = new UnloadedMarker(name, mod, SaveLocation.Server);
+                marker = new UnloadedMarker(name, mod, currentLocation);
             }
             else 
             {
                 marker = modInst.GetContent().FirstOrDefault(c => c is MapMarker m && m.Name == name) as MapMarker;
                 if (marker is null)
-                    marker = new UnloadedMarker(name, mod, SaveLocation.Server);
+                    marker = new UnloadedMarker(name, mod, currentLocation);
                 else marker = marker.CreateInstance();
             }
+
+            if (markerData.TryGet("enabled", out bool enabled))
+                marker.Enabled = enabled;
 
             if (markerData.TryGet("id", out byte[] id))
                 marker.Id = new(id);
@@ -67,7 +71,6 @@ namespace MapMarkers
 
             return marker;
         }
-
 
         // TODO when Netcode: add net handling
 
@@ -79,6 +82,11 @@ namespace MapMarkers
         public void MoveMarker(MapMarker marker, Vector2 pos)
         {
             marker.Position = pos;
+        }
+
+        public void SetMarkerEnabled(MapMarker marker, bool enabled)
+        {
+            marker.Enabled = enabled;
         }
     }
 }

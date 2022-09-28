@@ -47,7 +47,7 @@ namespace MapMarkers
             if (tag.TryGet("markers", out List<TagCompound> markers))
                 foreach (TagCompound markerTag in markers)
                 {
-                    MapMarker? marker = MapMarkers.LoadMarker(markerTag);
+                    MapMarker? marker = MapMarkers.LoadMarker(markerTag, SaveLocation.Server);
                     if (marker is null)
                         continue;
 
@@ -72,7 +72,7 @@ namespace MapMarkers
         {
             Keybinds.Update();
 
-            if (CreateMarkerKeybind.JustPressed && !MarkerEditMenu.Visible)
+            if (CreateMarkerKeybind.JustPressed && !MarkerEditMenu.Visible && !Keybinds.InputBlocked)
             {
                 Vector2? pos = null;
                 if (Helper.MapVisibleScreenRect.Contains(Main.MouseScreen.ToPoint()))

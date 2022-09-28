@@ -51,7 +51,20 @@ namespace MapMarkers
         /// </summary>
         public virtual Vector2 Size { get; set; } = new(20, 20);
 
+        /// <summary>
+        /// Hover outline color
+        /// </summary>
         public virtual Color OutlineColor { get; set; } = Color.White;
+
+        /// <summary>
+        /// Whether this marker is enabled by user
+        /// </summary>
+        public bool Enabled { get; set; } = true;
+
+        /// <summary>
+        /// Whether this marker is active and can be drawn/hovered<br/>
+        /// </summary>
+        public virtual bool Active { get; set; } = true;
 
         /// <summary>
         /// Whether this marker should be drawn topmost, i.e. in front of all markers, map icons and minimap frame
@@ -68,8 +81,19 @@ namespace MapMarkers
         /// </summary>
         public abstract SaveLocation SaveLocation { get; }
 
+        /// <summary>
+        /// Whether this marker is hovered at this moment
+        /// </summary>
         public bool Hovered { get; internal set; }
+
+        /// <summary>
+        /// Marker screen rectangle to draw in
+        /// </summary>
         public Rect ScreenRect { get; internal set; }
+
+        /// <summary>
+        /// Whether this marker is pinned. Read-only.
+        /// </summary>
         public bool Pinned { get; internal set; }
 
         internal Mod InstanceMod = null!;

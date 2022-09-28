@@ -1,5 +1,6 @@
 ﻿using MapMarkers.Structures;
 using MapMarkers.UI;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -48,6 +49,12 @@ namespace MapMarkers
 
             foreach (MapMarker marker in MapMarkers.Markers.Values)
             {
+                if (!ShouldDrawMarker(marker))
+                {
+                    marker.Hovered = false;
+                    continue;
+                }
+
                 Vector2 markerCenter = Helper.MapToScreen(marker.Position);
                 Rect screenRect = new(default, marker.Size);
                 screenRect.Center = markerCenter;
@@ -202,8 +209,12 @@ namespace MapMarkers
 
             if (Keybinds.ShiftKey == KeybindState.Pressed)
             {
-                if (marker.Pinned)
+                if (marker.Pinned && !marker.Enabled)
+                    MouseTextBuilder.AppendLine("Pinned and disabled");
+                else if (marker.Pinned)
                     MouseTextBuilder.AppendLine("Pinned");
+                else if (!marker.Enabled)
+                    MouseTextBuilder.AppendLine("Disabled");
 
 
                 MouseTextBuilder.AppendFormat("[c/aaaaaa:{0} ({1}) [{2}][c/bbbbbb:]]\n", marker.Name, marker.Mod.Name, MapMarkers.MarkerGuids.GetShortGuid(marker.Id));
@@ -287,7 +298,7 @@ namespace MapMarkers
             Main.ContentThatNeedsRenderTargets.Remove(this);
         }
 
-        public static string GetCenteredPosition(Vector2 pos)
+        private static string GetCenteredPosition(Vector2 pos)
         {
             int x = (int)(pos.X * 2f - Main.maxTilesX);
             int y = (int)(pos.Y * 2f - Main.maxTilesY);
@@ -313,5 +324,27 @@ namespace MapMarkers
 
             return xs + "\n" + ys;
         }
+
+        private static bool ShouldDrawMarker(MapMarker marker)
+        {
+            if (!marker.Active)
+                return false;
+
+            if (!marker.Enabled)
+            {
+                if (!Helper.IsFullscreenMap)
+                    return false;
+
+                if (Main.keyState.PressingShift())
+                    return true;
+
+                if (MarkerMenu.Marker is not null && MarkerMenu.Marker.Id == marker.Id)
+                    return true;
+
+                return false;
+            }
+            return true;
+        }
+
     }
 }
