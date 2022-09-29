@@ -57,11 +57,6 @@ namespace MapMarkers
         public virtual Color OutlineColor { get; set; } = Color.White;
 
         /// <summary>
-        /// Whether this marker is enabled by user
-        /// </summary>
-        public bool Enabled { get; set; } = true;
-
-        /// <summary>
         /// Whether this marker is active and can be drawn/hovered<br/>
         /// </summary>
         public virtual bool Active { get; set; } = true;
@@ -91,12 +86,19 @@ namespace MapMarkers
         /// </summary>
         public Rect ScreenRect { get; internal set; }
 
-        /// <summary>
-        /// Whether this marker is pinned. Read-only.
-        /// </summary>
-        public bool Pinned { get; internal set; }
+        public PlayerMarkerData PlayerData 
+        {
+            get
+            {
+                if (playerData is not null && playerData.Id == Id)
+                    return playerData;
+
+                return playerData = PlayerMarkerData.GetByMarkerId(Id);
+            }
+        }
 
         internal Mod InstanceMod = null!;
+        private PlayerMarkerData? playerData = null;
 
         void ILoadable.Load(Mod mod)
         {

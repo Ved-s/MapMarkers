@@ -24,8 +24,6 @@ namespace MapMarkers
         /// </summary>
         public Dictionary<Guid, MapMarker> Markers { get; } = new();
 
-        public HashSet<Guid> PinnedMarkers { get; } = new();
-
         public ShortGuids MarkerGuids { get; } = new(2);
 
         public static TagCompound SaveMarker(MapMarker marker)
@@ -34,7 +32,6 @@ namespace MapMarkers
             tag["id"] = marker.Id.ToByteArray();
             tag["name"] = marker.Name;
             tag["mod"] = marker.SaveModName;
-            tag["enabled"] = marker.Enabled;
             TagCompound data = new();
             marker.SaveData(data);
             tag["data"] = data;
@@ -60,9 +57,6 @@ namespace MapMarkers
                 else marker = marker.CreateInstance();
             }
 
-            if (markerData.TryGet("enabled", out bool enabled))
-                marker.Enabled = enabled;
-
             if (markerData.TryGet("id", out byte[] id))
                 marker.Id = new(id);
 
@@ -82,11 +76,6 @@ namespace MapMarkers
         public void MoveMarker(MapMarker marker, Vector2 pos)
         {
             marker.Position = pos;
-        }
-
-        public void SetMarkerEnabled(MapMarker marker, bool enabled)
-        {
-            marker.Enabled = enabled;
         }
     }
 }

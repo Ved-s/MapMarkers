@@ -15,6 +15,7 @@ namespace MapMarkers
         internal static MapMarkers MapMarkers => ModContent.GetInstance<MapMarkers>();
 
         public TagCompound CurrentMarkerData { get; private set; } = new();
+        public TagCompound? CurrentPMD { get; private set; }
 
         public override void SaveData(TagCompound tag)
         {
@@ -24,12 +25,12 @@ namespace MapMarkers
                 .ToList();
 
             tag["markers"] = CurrentMarkerData;
-            tag["pinned"] = MapMarkers.PinnedMarkers.Select(g => g.ToByteArray()).ToList();
+            tag["pmd"] = PlayerMarkerData.Save();
 
             if (Main.gameMenu) // Player exiting to menu
             {
                 MapMarkers.Markers.RemoveWhere(kvp => kvp.Value.SaveLocation != SaveLocation.Server);
-                MapMarkers.PinnedMarkers.Clear();
+                PlayerMarkerData.Clear();
             }
         }
 
@@ -37,11 +38,8 @@ namespace MapMarkers
         {
             if (tag.TryGet("markers", out TagCompound markers))
                 CurrentMarkerData = markers;
-            if (tag.TryGet("pinned", out List<byte[]> pinned))
-            {
-                MapMarkers.PinnedMarkers.Clear();
-                MapMarkers.PinnedMarkers.UnionWith(pinned.Select(b => new Guid(b)));
-            }
+            if (tag.TryGet("pmd", out TagCompound pmd))
+                CurrentPMD = pmd;
         }
 
         public override void OnEnterWorld(Player player)
@@ -57,6 +55,7 @@ namespace MapMarkers
                     MapMarkers.Markers[marker.Id] = marker;
                 }
             }
+            PlayerMarkerData.Load(CurrentPMD);
         }
     }
 }

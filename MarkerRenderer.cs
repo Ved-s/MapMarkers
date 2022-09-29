@@ -58,9 +58,8 @@ namespace MapMarkers
                 Vector2 markerCenter = Helper.MapToScreen(marker.Position);
                 Rect screenRect = new(default, marker.Size);
                 screenRect.Center = markerCenter;
-                marker.Pinned = MapMarkers.PinnedMarkers.Contains(marker.Id);
                 marker.ScreenRect = screenRect;
-                if (marker.Pinned)
+                if (marker.PlayerData.Pinned)
                 {
                     Rect markerScreenBoundary = new(0, 0, Main.screenWidth, Main.screenHeight);
                     markerScreenBoundary.Location += screenRect.Size / 2;
@@ -98,7 +97,7 @@ namespace MapMarkers
                     HoveredMarker = marker;
                 }
 
-                bool visible = marker.Pinned || !marker.ClipToMap || marker.ScreenRect.Intersects(mapRect);
+                bool visible = marker.PlayerData.Pinned || !marker.ClipToMap || marker.ScreenRect.Intersects(mapRect);
                 if (visible)
                     VisibleMarkers.Add(marker);
             }
@@ -131,7 +130,7 @@ namespace MapMarkers
             Main.spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, Scissors, null, Main.UIScaleMatrix);
 
             foreach (MapMarker marker in VisibleMarkers)
-                if (marker.ClipToMap && !marker.Pinned && marker.DrawTopMost == onTop)
+                if (marker.ClipToMap && !marker.PlayerData.Pinned && marker.DrawTopMost == onTop)
                     DrawMarker(marker);
 
             Main.spriteBatch.End();
@@ -139,7 +138,7 @@ namespace MapMarkers
             Main.spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullCounterClockwise, null, Main.UIScaleMatrix);
 
             foreach (MapMarker marker in VisibleMarkers)
-                if (!marker.ClipToMap && marker.DrawTopMost == onTop || marker.Pinned && onTop)
+                if (!marker.ClipToMap && marker.DrawTopMost == onTop || marker.PlayerData.Pinned && onTop)
                     DrawMarker(marker);
 
             if (onTop && HoveredMarker is not null && !MarkerHoverBlocked)
@@ -204,13 +203,13 @@ namespace MapMarkers
             MouseTextBuilder.AppendLine(marker.DisplayName);
             MouseTextBuilder.AppendLine(GetCenteredPosition(marker.Position));
 
-            if (Keybinds.ShiftKey == KeybindState.Pressed)
+            if (Main.keyState.PressingShift())
             {
-                if (marker.Pinned && !marker.Enabled)
+                if (marker.PlayerData.Pinned && !marker.PlayerData.Enabled)
                     MouseTextBuilder.AppendLine("Pinned and disabled");
-                else if (marker.Pinned)
+                else if (marker.PlayerData.Pinned)
                     MouseTextBuilder.AppendLine("Pinned");
-                else if (!marker.Enabled)
+                else if (!marker.PlayerData.Enabled)
                     MouseTextBuilder.AppendLine("Disabled");
 
 
@@ -327,7 +326,7 @@ namespace MapMarkers
             if (!marker.Active)
                 return false;
 
-            if (!marker.Enabled)
+            if (!marker.PlayerData.Enabled)
             {
                 if (!Helper.IsFullscreenMap)
                     return false;

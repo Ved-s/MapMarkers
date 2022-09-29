@@ -261,22 +261,15 @@ namespace MapMarkers.UI
                     "[Del] Delete marker",
                     () => { MapMarkers.RemoveMarker(Marker); });
 
-            bool pin = MapMarkers.PinnedMarkers.Contains(Marker.Id);
             yield return new(
-                pin ? "Unpin" : "Pin",
-                pin ? "Unpin marker" : "Pin marker.\nPinned markers are always visible on the map.",
-                () =>
-                {
-                    if (MapMarkers.PinnedMarkers.Contains(Marker.Id))
-                        MapMarkers.PinnedMarkers.Remove(Marker.Id);
-                    else
-                        MapMarkers.PinnedMarkers.Add(Marker.Id);
-                });
+                Marker.PlayerData.Pinned ? "Unpin" : "Pin",
+                Marker.PlayerData.Pinned ? "Unpin marker" : "Pin marker.\nPinned markers are always visible on the map.",
+                () => Marker.PlayerData.Pinned = !Marker.PlayerData.Pinned);
 
             yield return new(
-                Marker.Enabled ? "Disable" : "Enable",
-                Marker.Enabled ? "Disable marker\nDisabled markers are\ndisplayed only on\nfullscreen map and\nwhen Shift is pressed." : "Enable marker",
-                () => MapMarkers.SetMarkerEnabled(Marker, !Marker.Enabled));
+                Marker.PlayerData.Enabled ? "Disable" : "Enable",
+                Marker.PlayerData.Enabled ? "Disable marker\nDisabled markers are\ndisplayed only on\nfullscreen map and\nwhen Shift is pressed." : "Enable marker",
+                () => Marker.PlayerData.Enabled = !Marker.PlayerData.Enabled);
 
             //yield return new(
             //    "Teleport",
