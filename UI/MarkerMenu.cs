@@ -50,6 +50,7 @@ namespace MapMarkers.UI
 
         static Vector2 MapPosUICache;
         static float MapScaleUICache;
+        static Vector2 MarkerPosUICache;
 
         public static void Show(MapMarker? marker)
         {
@@ -85,6 +86,7 @@ namespace MapMarkers.UI
 
             MapPosUICache = Main.mapFullscreenPos;
             MapScaleUICache = Main.mapFullscreenScale;
+            MarkerPosUICache = marker.Position;
 
             SoundEngine.PlaySound(SoundID.MenuOpen);
         }
@@ -304,7 +306,8 @@ namespace MapMarkers.UI
                     || !MapMarkers.Markers.ContainsKey(Marker.Id)
                     || (State is not null && !Hovering && Keybinds.MouseLeftKey == KeybindState.Pressed
                     || MapPosUICache != Main.mapFullscreenPos
-                    || MapScaleUICache != Main.mapFullscreenScale))
+                    || MapScaleUICache != Main.mapFullscreenScale
+                    || MarkerPosUICache != Marker.Position))
                 {
                     Hide();
                     return;
