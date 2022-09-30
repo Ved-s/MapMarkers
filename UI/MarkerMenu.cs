@@ -1,4 +1,5 @@
-﻿using MapMarkers.Structures;
+﻿using MapMarkers.Items;
+using MapMarkers.Structures;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
@@ -271,10 +272,11 @@ namespace MapMarkers.UI
                 Marker.PlayerData.Enabled ? "Disable marker\nDisabled markers are\ndisplayed only on\nfullscreen map and\nwhen Shift is pressed." : "Enable marker",
                 () => Marker.PlayerData.Enabled = !Marker.PlayerData.Enabled);
 
-            //yield return new(
-            //    "Teleport",
-            //    "Teleport to the marker\nWill consume one Marker Teleport Potion",
-            //    () => { Main.NewText("Not yet implemented"); });
+            if (MarkerPlayer.LocalInstance.CanTeleport())
+                yield return new(
+                    "Teleport",
+                    "Teleport to the marker\nWill consume one Marker Teleport Potion",
+                    () => MarkerPlayer.LocalInstance.Teleport(Marker));
         }
 
         internal static void Draw()

@@ -438,8 +438,6 @@ namespace MapMarkers.UI
             if (PinnedSwitch is not null)
                 PinnedSwitch.State = Marker is not null && Marker.PlayerData.Pinned;
 
-
-
             // TODO: Multiplayer
             MultiplayerLabel?.Remove();
             LocalSwitch?.Remove();
