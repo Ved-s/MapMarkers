@@ -1,0 +1,121 @@
+﻿{
+	Mods.MapMarkers: {
+		ItemName.MarkerTPPotion: Marker Teleportation Potion
+		
+		ItemTooltip.MarkerTPPotion: 
+			'''
+			Allows you to teleport to markers.
+			Only usable without Teleportation Disability debuff.
+			Cannot teleport to unexplored area.
+			'''
+
+		BuffName.TPDisability: Teleportation Disability
+		
+		BuffDescription.TPDisability: You feel sick since using Marker Teleportation Potion
+		
+		Chat: 
+		{
+			NotEnoughTPSpace: Not enough space to teleport
+			NoTPPotions: No Marker TP potions
+		}
+
+		Marker: 
+		{
+			Pinned: Pinned
+			Disabled: Disabled
+			PinnedDisabled: Pinned and disabled
+			Owner: "Owner:"
+			OpenMenu: "[c/bbbb22:Right click] marker to open menu"
+			Move: "Move marker with [c/bbbb22:middle mouse button]"
+			NotFSMap: "Marker actions are available only on [c/22bbbb:fullscreen map]"
+			ShiftInfo: "Hold [c/bbbb22:Shift] for info"
+		}
+
+		MarkerMenuItem: 
+		{
+			Delete:    Delete
+			Edit:      Edit
+			Teleport:  Teleport
+			Pin:       Pin
+			Unpin:     Unpin
+			Disable:   Disable
+			Enable:    Enable
+		}
+
+		MarkerMenuItemDesc:
+		{
+			Delete:    "[Del] Delete marker"
+
+			Edit:      Edit this marker
+
+			Teleport:  
+			'''
+			Teleport to the marker
+			Will consume one Marker Teleport Potion
+			'''
+
+			Pin:       
+			'''
+			Pin marker.
+			Pinned markers are always visible on the map.
+			'''
+
+			Unpin:     Unpin marker
+
+			Disable:   
+			'''
+			Disable marker
+			Disabled markers are
+			displayed only on
+			fullscreen map and
+			when Shift is pressed.
+			'''
+
+			Enable:    Enable marker
+		}
+
+		EditUI: 
+		{
+			Title: Edit marker
+			Name: Name
+			Enabled: Enabled
+			Pinned: Pinned
+			Ok: Ok
+			Item: Item
+			ItemSearch: Search item
+
+			MPVisibility: 
+			{
+				Title: Multiplayer visibility
+				Local: Local
+				Team: Team
+				Global: Global
+			}
+
+			MPPermissions:
+			{
+				Title: Multiplayer permissions
+				Edit: Edit
+				Delete: Delete
+			}
+
+			Descriptions: 
+			{
+				NameInput: The name of the marker bering edited
+
+				ItemDisplay: Item which will be displayed as marker icon
+				ItemSearchInput: Search input for item list
+
+				EnabledSwitch: Whether the marker is enabled and shown on the map. Hold Shift while fullscreen map is open to see disabled markers
+				PinnedSwitch: Whether the marker is pinned and stays always visible on map
+
+				LocalSwitch: Only you can see the marker
+				TeamSwitch: Only your team can see the marker
+				GlobalSwitch: Everyone on server can see the marker
+
+				EditSwitch: Everyone can edit this marker
+				DeleteSwitch: Everyone can delete this marker
+			}
+		}
+	}
+}

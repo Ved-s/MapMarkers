@@ -11,11 +11,6 @@ namespace MapMarkers.Items
     {
         public static int ItemType => ModContent.ItemType<MarkerTPPotion>();
 
-        public override void SetStaticDefaults()
-        {
-            Tooltip.SetDefault(Language.GetTextValue("Mods.MapMarkes.ItemTooltip.MarkerTPPotion"));
-        }
-
         public override void SetDefaults()
         {
             Item.width = 24;

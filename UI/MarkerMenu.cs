@@ -8,6 +8,7 @@ using Terraria.Audio;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.UI;
 
@@ -184,7 +185,7 @@ namespace MapMarkers.UI
 
                     BackgroundColor = new Color(64, 64, 64, 200),
                 };
-                string description = def.Description;
+                string description = Language.GetTextValue(def.Description);
                 float desY = y + Panel.PaddingTop;
                 labelPanel.OnMouseOver += (ev, el) =>
                 {
@@ -205,7 +206,7 @@ namespace MapMarkers.UI
                 UIAutoLabel label = new()
                 {
                     Width = new(0, 1),
-                    Text = def.Text
+                    Text = Language.GetTextValue(def.Text)
                 };
                 Action callback = def.Callback;
                 label.OnClick += (ev, el) => { callback(); Hide(); };
@@ -258,24 +259,24 @@ namespace MapMarkers.UI
 
             if (Marker.CanDelete(Main.myPlayer))
                 yield return new(
-                    "Delete",
-                    "[Del] Delete marker",
+                    "Mods.MapMarkers.MarkerMenuItem.Delete",
+                    "Mods.MapMarkers.MarkerMenuItemDesc.Delete",
                     () => { MapMarkers.RemoveMarker(Marker); });
 
             yield return new(
-                Marker.PlayerData.Pinned ? "Unpin" : "Pin",
-                Marker.PlayerData.Pinned ? "Unpin marker" : "Pin marker.\nPinned markers are always visible on the map.",
+                Marker.PlayerData.Pinned ? "Mods.MapMarkers.MarkerMenuItem.Unpin" : "Mods.MapMarkers.MarkerMenuItem.Pin",
+                Marker.PlayerData.Pinned ? "Mods.MapMarkers.MarkerMenuItemDesc.Unpin" : "Mods.MapMarkers.MarkerMenuItemDesc.Pin",
                 () => Marker.PlayerData.Pinned = !Marker.PlayerData.Pinned);
 
             yield return new(
-                Marker.PlayerData.Enabled ? "Disable" : "Enable",
-                Marker.PlayerData.Enabled ? "Disable marker\nDisabled markers are\ndisplayed only on\nfullscreen map and\nwhen Shift is pressed." : "Enable marker",
+                Marker.PlayerData.Enabled ? "Mods.MapMarkers.MarkerMenuItem.Disable" : "Mods.MapMarkers.MarkerMenuItem.Enable",
+                Marker.PlayerData.Enabled ? "Mods.MapMarkers.MarkerMenuItemDesc.Disable" : "Mods.MapMarkers.MarkerMenuItemDesc.Enable",
                 () => Marker.PlayerData.Enabled = !Marker.PlayerData.Enabled);
 
-            if (MarkerPlayer.LocalInstance.CanTeleport())
+            if (MarkerPlayer.LocalInstance.CanTeleport(Marker))
                 yield return new(
-                    "Teleport",
-                    "Teleport to the marker\nWill consume one Marker Teleport Potion",
+                    "Mods.MapMarkers.MarkerMenuItem.Teleport",
+                    "Mods.MapMarkers.MarkerMenuItemDesc.Teleport",
                     () => MarkerPlayer.LocalInstance.Teleport(Marker));
         }
 

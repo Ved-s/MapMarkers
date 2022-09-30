@@ -1,4 +1,5 @@
-﻿using MapMarkers.Markers;
+﻿using Terraria.Localization;
+using MapMarkers.Markers;
 using MapMarkers.Structures;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
@@ -64,7 +65,7 @@ namespace MapMarkers.UI
                 BackgroundColor = new(32, 32, 64, 200)
             });
 
-            MainPanel.Append(new UIText("Edit marker", 1.5f)
+            MainPanel.Append(new UIText(MapMarkers.GetLangValue("EditUI.Title"), 1.5f)
             {
                 Top = new(-40, 0),
                 Width = new(0, 1),
@@ -105,7 +106,7 @@ namespace MapMarkers.UI
 
         static void InitNameInput(UIElement box)
         {
-            box.Append(new UIText("Name")
+            box.Append(new UIText(MapMarkers.GetLangValue("EditUI.Name"))
             {
                 Top = new(0, 0),
                 Left = new(4, 0),
@@ -139,7 +140,7 @@ namespace MapMarkers.UI
                 Left = new(0, 0),
                 Width = new(0, .5f),
 
-                Text = "Enabled",
+                Text = MapMarkers.GetLangValue("EditUI.Enabled"),
                 BackColor = new(32, 32, 64, 200),
                 State = true
             });
@@ -150,7 +151,7 @@ namespace MapMarkers.UI
                 Left = new(0, .5f),
                 Width = new(0, .5f),
 
-                Text = "Pinned",
+                Text = MapMarkers.GetLangValue("EditUI.Pinned"),
                 BackColor = new(32, 32, 64, 200)
             });
 
@@ -172,7 +173,7 @@ namespace MapMarkers.UI
         }
         static void InitMPVisibility(UIElement box)
         {
-            box.Append(MultiplayerLabel = new("Multiplayer visibility")
+            box.Append(MultiplayerLabel = new(MapMarkers.GetLangValue("EditUI.MPVisibility.Title"))
             {
                 Top = new(190, 0),
                 Width = new(0, 1),
@@ -189,7 +190,7 @@ namespace MapMarkers.UI
 
                 BackColor = new(32, 32, 64, 200),
                 DotColor = Color.Yellow,
-                Text = "Local",
+                Text = MapMarkers.GetLangValue("EditUI.MPVisibility.Local"),
                 State = true,
                 RadioGroup = "mpv"
             });
@@ -202,7 +203,7 @@ namespace MapMarkers.UI
 
                 BackColor = new(32, 32, 64, 200),
                 DotColor = Color.Yellow,
-                Text = "Team",
+                Text = MapMarkers.GetLangValue("EditUI.MPVisibility.Team"),
                 RadioGroup = "mpv"
             });
 
@@ -214,13 +215,13 @@ namespace MapMarkers.UI
 
                 BackColor = new(32, 32, 64, 200),
                 DotColor = Color.Yellow,
-                Text = "Global",
+                Text = MapMarkers.GetLangValue("EditUI.MPVisibility.Global"),
                 RadioGroup = "mpv"
             });
         }
         static void InitMPPermissions(UIElement box)
         {
-            box.Append(PermissionsLabel = new("Multiplayer permissions")
+            box.Append(PermissionsLabel = new(MapMarkers.GetLangValue("EditUI.MPPermissions.Title"))
             {
                 Top = new(260, 0),
                 Width = new(0, 1),
@@ -236,7 +237,7 @@ namespace MapMarkers.UI
                 Width = new(0, .5f),
 
                 BackColor = new(32, 32, 64, 200),
-                Text = "Edit",
+                Text = MapMarkers.GetLangValue("EditUI.MPPermissions.Edit"),
                 State = true
             });
 
@@ -247,7 +248,7 @@ namespace MapMarkers.UI
                 Width = new(0, .5f),
 
                 BackColor = new(32, 32, 64, 200),
-                Text = "Delete",
+                Text = MapMarkers.GetLangValue("EditUI.MPPermissions.Delete"),
                 State = true
             });
         }
@@ -257,7 +258,7 @@ namespace MapMarkers.UI
             if (State is null)
                 return;
 
-            UITextPanel<string> button = new("Ok")
+            UITextPanel<string> button = new(MapMarkers.GetLangValue("EditUI.Ok"))
             {
                 Top = new(210, .5f),
                 Left = new(-50, .5f),
@@ -286,7 +287,7 @@ namespace MapMarkers.UI
                 Width = new(-40, .4f)
             };
 
-            box.Append(new UIText("Item")
+            box.Append(new UIText(MapMarkers.GetLangValue("EditUI.Item"))
             {
                 Top = new(0, 0),
                 Left = new(4, 0),
@@ -306,7 +307,7 @@ namespace MapMarkers.UI
                 BackColor = new(100, 100, 100),
             });
 
-            box.Append(new UIText("Search item")
+            box.Append(new UIText(MapMarkers.GetLangValue("EditUI.ItemSearch"))
             {
                 Top = new(10, 0),
                 Left = new(56, 0),
@@ -401,27 +402,27 @@ namespace MapMarkers.UI
 
         static void InitDescriptions()
         {
-            BindDescription(NameInput, "The name of the marker bering edited");
+            BindDescription(NameInput, "EditUI.Descriptions.NameInput");
 
-            BindDescription(ItemDisplay, "Item which will be displayed as marker icon");
-            BindDescription(ItemSearchInput, "Search input for item list");
+            BindDescription(ItemDisplay, "EditUI.Descriptions.ItemDisplay");
+            BindDescription(ItemSearchInput, "EditUI.Descriptions.ItemSearchInput");
 
-            BindDescription(EnabledSwitch, "Whether the marker is enabled and shown on the map. Hold Shift while fullscreen map is open to see disabled markers");
-            BindDescription(PinnedSwitch, "Whether the marker is pinned and stays always visible on map");
+            BindDescription(EnabledSwitch, "EditUI.Descriptions.EnabledSwitch");
+            BindDescription(PinnedSwitch, "EditUI.Descriptions.PinnedSwitch");
 
-            BindDescription(LocalSwitch, "Only you can see the marker");
-            BindDescription(TeamSwitch, "Only your team can see the marker");
-            BindDescription(GlobalSwitch, "Everyone on server can see the marker");
+            BindDescription(LocalSwitch, "EditUI.Descriptions.LocalSwitch");
+            BindDescription(TeamSwitch, "EditUI.Descriptions.TeamSwitch");
+            BindDescription(GlobalSwitch, "EditUI.Descriptions.GlobalSwitch");
 
-            BindDescription(EditSwitch, "Everyone can edit this marker");
-            BindDescription(DeleteSwitch, "Everyone can delete this marker");
+            BindDescription(EditSwitch, "EditUI.Descriptions.EditSwitch");
+            BindDescription(DeleteSwitch, "EditUI.Descriptions.DeleteSwitch");
         }
         static void BindDescription(UIElement? element, string description)
         {
             if (Description is null || element is null)
                 return;
 
-            element.OnMouseOver += (ev, el) => Description.Text = description;
+            element.OnMouseOver += (ev, el) => Description.Text = MapMarkers.GetLangValue(description);
             element.OnMouseOut += (ev, el) => Description.Text = "";
         }
 

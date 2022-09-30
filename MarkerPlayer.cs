@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Terraria;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
@@ -99,12 +100,16 @@ namespace MapMarkers
         {
             Vector2? tpPos = TryGetTeleportPos(m);
             if (!tpPos.HasValue)
-                // TODO: Notify player
+            {
+                Main.NewText("[[c/00ff00:Map Markers]] [c/ff0000:" + MapMarkers.GetLangValue("Chat.NotEnoughTPSpace") + "]");
                 return;
+            }
 
             if (!FindTPPotion(true))
-                // TODO: Notify player
+            {
+                Main.NewText("[[c/00ff00:Map Markers]] [c/ff0000:" + MapMarkers.GetLangValue("Chat.NoTPPotions") + "]");
                 return;
+            }
 
             if (Main.mapFullscreen)
                 Main.mapFullscreen = false;
@@ -157,9 +162,12 @@ namespace MapMarkers
 
         }
 
-        public bool CanTeleport()
+        public bool CanTeleport(MapMarker m)
         {
-            return !Player.HasBuff(TPDisability.BuffType) && FindTPPotion(false);
+            if (!WorldGen.InWorld((int)m.Position.X, (int)m.Position.Y))
+                return false;
+
+            return !Player.HasBuff(TPDisability.BuffType) && Main.Map[(int)m.Position.X, (int)m.Position.Y].Light > 40 && FindTPPotion(false);
         }
     }
 }

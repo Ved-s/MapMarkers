@@ -206,30 +206,30 @@ namespace MapMarkers
             if (Main.keyState.PressingShift())
             {
                 if (marker.PlayerData.Pinned && !marker.PlayerData.Enabled)
-                    MouseTextBuilder.AppendLine("Pinned and disabled");
+                    MouseTextBuilder.AppendLine(MapMarkers.GetLangValue("Marker.PinnedDisabled"));
                 else if (marker.PlayerData.Pinned)
-                    MouseTextBuilder.AppendLine("Pinned");
+                    MouseTextBuilder.AppendLine(MapMarkers.GetLangValue("Marker.Pinned"));
                 else if (!marker.PlayerData.Enabled)
-                    MouseTextBuilder.AppendLine("Disabled");
+                    MouseTextBuilder.AppendLine(MapMarkers.GetLangValue("Marker.Disabled"));
 
 
                 MouseTextBuilder.AppendFormat("[c/aaaaaa:{0} ({1}) [{2}][c/bbbbbb:]]\n", marker.Name, marker.Mod.Name, MapMarkers.MarkerGuids.GetShortGuid(marker.Id));
 
                 if (Helper.IsFullscreenMap)
                 {
-                    MouseTextBuilder.AppendLine("[c/bbbb22:Right click] marker to open menu");
+                    MouseTextBuilder.AppendLine(MapMarkers.GetLangValue("Marker.OpenMenu"));
 
                     if (marker.CanMove(Main.myPlayer))
-                        MouseTextBuilder.AppendLine("Move marker with [c/bbbb22:middle mouse button]");
+                        MouseTextBuilder.AppendLine(MapMarkers.GetLangValue("Marker.Move"));
                 }
                 else
                 {
-                    MouseTextBuilder.AppendLine("Marker actions are available only on [c/22bbbb:fullscreen map]");
+                    MouseTextBuilder.AppendLine(MapMarkers.GetLangValue("Marker.NotFSMap"));
                 }
             }
             else
             {
-                MouseTextBuilder.AppendLine("Hold [c/bbbb22:Shift] for info");
+                MouseTextBuilder.AppendLine(MapMarkers.GetLangValue("Marker.ShiftInfo"));
             }
 
             marker.Hover(MouseTextBuilder);

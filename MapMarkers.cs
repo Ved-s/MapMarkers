@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Terraria;
+using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
@@ -76,6 +77,14 @@ namespace MapMarkers
         public void MoveMarker(MapMarker marker, Vector2 pos)
         {
             marker.Position = pos;
+        }
+
+        public static string GetLangValue(string key)
+        {
+            string fullKey = "Mods.MapMarkers." + key;
+            if (!Language.Exists(fullKey))
+                return key;
+            return Language.GetTextValue(fullKey);
         }
     }
 }

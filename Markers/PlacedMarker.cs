@@ -91,7 +91,7 @@ namespace MapMarkers.Markers
 
         public override IEnumerable<MarkerMenu.MenuItemDefinition> GetMenuItems()
         {
-            yield return new MarkerMenu.MenuItemDefinition("Edit", "Edit this marker", () => MarkerEditMenu.Show(this));
+            yield return new MarkerMenu.MenuItemDefinition("Mods.MapMarkers.MarkerMenuItem.Edit", "Mods.MapMarkers.MarkerMenuItemDesc.Edit", () => MarkerEditMenu.Show(this));
         }
     }
 }
