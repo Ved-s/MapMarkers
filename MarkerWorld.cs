@@ -51,7 +51,7 @@ namespace MapMarkers
                     if (marker is null)
                         continue;
 
-                    MapMarkers.Markers[marker.Id] = marker;
+                    MapMarkers.AddMarker(marker, false);
                 }
         }
 
@@ -89,7 +89,7 @@ namespace MapMarkers
                     PlacedMarker marker = new();
                     marker.DisplayItemType = ItemID.TrifoldMap;
                     marker.Position = pos.Value;
-                    MapMarkers.Markers.Add(marker.Id, marker);
+                    MapMarkers.AddMarker(marker, true);
 
                     MarkerEditMenu.Show(marker);
                 }

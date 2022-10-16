@@ -55,10 +55,11 @@ namespace MapMarkers
                     if (marker is null)
                         continue;
 
-                    MapMarkers.Markers[marker.Id] = marker;
+                    MapMarkers.AddMarker(marker, false);
                 }
             }
             PlayerMarkerData.Load(CurrentPMD);
+            Networking.OnJoinWorld();
         }
 
         public bool FindTPPotion(bool consume)

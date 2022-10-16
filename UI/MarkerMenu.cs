@@ -263,7 +263,7 @@ namespace MapMarkers.UI
                 yield return new(
                     "Mods.MapMarkers.MarkerMenuItem.Delete",
                     "Mods.MapMarkers.MarkerMenuItemDesc.Delete",
-                    () => { MapMarkers.RemoveMarker(Marker); });
+                    () => { MapMarkers.RemoveMarker(Marker, true); });
 
             yield return new(
                 Marker.PlayerData.Pinned ? "Mods.MapMarkers.MarkerMenuItem.Unpin" : "Mods.MapMarkers.MarkerMenuItem.Pin",

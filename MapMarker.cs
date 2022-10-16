@@ -8,6 +8,7 @@ using System.Text;
 using System.Data;
 using System.Collections.Generic;
 using static MapMarkers.UI.MarkerMenu;
+using System.IO;
 
 namespace MapMarkers
 {
@@ -26,7 +27,7 @@ namespace MapMarkers
         /// <summary>
         /// Mod which loaded this marker type
         /// </summary>
-        public Mod Mod => InstanceMod ?? MapMarkers.MarkerInstances[GetType()].InstanceMod;
+        public Mod Mod => InstanceMod ??= MapMarkers.MarkerInstances[GetType()].InstanceMod;
 
         internal virtual string SaveModName => Mod.Name;
 
@@ -74,7 +75,7 @@ namespace MapMarkers
         /// <summary>
         /// Marker save location
         /// </summary>
-        public abstract SaveLocation SaveLocation { get; }
+        public virtual SaveLocation SaveLocation { get; set; }
 
         /// <summary>
         /// Whether this marker is hovered at this moment
@@ -133,12 +134,19 @@ namespace MapMarkers
         /// </summary>
         public virtual void LoadData(TagCompound tag) { }
 
+        public virtual bool ShouldBeSentTo(int whoAmI) => true;
+
+        public virtual void SendData(BinaryWriter writer) { }
+        public virtual void ReceiveData(BinaryReader reader) { }
+
         public virtual IEnumerable<MenuItemDefinition> GetMenuItems() { yield break; }
 
         public virtual MapMarker CreateInstance() => (MapMarker)Activator.CreateInstance(GetType())!;
 
         public virtual bool CanMove(int whoAmI) => true;
         public virtual bool CanDelete(int whoAmI) => true;
+
+        public bool NeedsSync() => Networking.IsServer || SaveLocation != SaveLocation.Client;
     }
 
     [Autoload(false)]
@@ -146,7 +154,6 @@ namespace MapMarkers
     {
         public override string Name { get; }
         internal override string SaveModName { get; }
-        public override SaveLocation SaveLocation { get; }
 
         public UnloadedMarker(string name, string mod, SaveLocation saveLocation)
         {

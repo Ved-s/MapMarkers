@@ -185,13 +185,13 @@ namespace MapMarkers
                 if (marker.Id != GrabbedMarker.Id)
                     return;
 
-                MapMarkers.MoveMarker(marker, Helper.ScreenToMap(Main.MouseScreen));
+                MapMarkers.MoveMarker(marker, Helper.ScreenToMap(Main.MouseScreen), true);
                 return;
             }
 
             if (Helper.IsFullscreenMap && Keybinds.GetKey(Keys.Delete) == KeybindState.JustPressed)
             {
-                MapMarkers.RemoveMarker(marker);
+                MapMarkers.RemoveMarker(marker, true);
                 return;
             }
 

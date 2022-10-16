@@ -1,14 +1,13 @@
-﻿using Terraria.ModLoader;
+﻿using MapMarkers.UI;
 using Microsoft.Xna.Framework;
-using Terraria;
 using Microsoft.Xna.Framework.Graphics;
-using Terraria.GameContent;
 using ReLogic.Content;
-using Terraria.ID;
-using Terraria.ModLoader.IO;
-using MapMarkers.Structures;
 using System.Collections.Generic;
-using MapMarkers.UI;
+using Terraria;
+using Terraria.GameContent;
+using Terraria.ID;
+using Terraria.ModLoader;
+using Terraria.ModLoader.IO;
 
 namespace MapMarkers.Markers
 {
@@ -20,18 +19,17 @@ namespace MapMarkers.Markers
             set { displayItem = value; ItemTextureCache = null; }
         }
 
-        public int DisplayItemType 
+        public int DisplayItemType
         {
             get => DisplayItem.type;
-            set 
+            set
             {
                 Item i = new();
                 i.SetDefaults(value);
-                DisplayItem.type = value;
+                DisplayItem = i;
             }
         }
 
-        public override SaveLocation SaveLocation => SaveLocation.Client;
         public override Vector2 Size => ItemFrame.Size();
 
         int ItemType => DisplayItem.type <= ItemID.None ? ItemID.TrifoldMap : DisplayItem.type;

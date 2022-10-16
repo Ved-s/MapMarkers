@@ -16,16 +16,20 @@ namespace MapMarkers
     {
         public static MapMarkers MapMarkers => ModContent.GetInstance<MapMarkers>();
 
+        public static string? LastConsoleCommand = null;
+
         public void Load(Mod mod)
         {
             IL.Terraria.Main.DrawMap += Main_DrawMap;
             IL.Terraria.Player.Update += Player_Update;
+            On.Terraria.Main.ExecuteCommand += Main_ExecuteCommand;
         }
 
         public void Unload()
         {
             IL.Terraria.Main.DrawMap -= Main_DrawMap;
             IL.Terraria.Player.Update -= Player_Update;
+            On.Terraria.Main.ExecuteCommand -= Main_ExecuteCommand;
         }
 
         private void Main_DrawMap(ILContext il)
@@ -38,6 +42,12 @@ namespace MapMarkers
         private void Player_Update(ILContext il)
         {
             Patch_Player_Update_MapZoom(il);
+        }
+
+        private void Main_ExecuteCommand(On.Terraria.Main.orig_ExecuteCommand orig, string text, CommandCaller commandCaller)
+        {
+            LastConsoleCommand = text;
+            orig(text, commandCaller);
         }
 
         private static void Patch_Main_DrawMap_MapRendering(ILContext il)
@@ -158,7 +168,7 @@ AfterCall:  +----> +#: ldloc num18
                 x=>x.MatchLdsfld<Main>("_lastPingMousePosition"),
                 x=>x.MatchCall<Vector2>(nameof(Vector2.Distance)),
                 x=>x.MatchLdcR4(out _),
-                x=>x.MatchBgeUn(out ifEndLabel),
+                x=>x.MatchBgeUn(out ifEndLabel!),
 
                 x=>x.MatchCall<Main>("get_MouseScreen")
                 ))
@@ -169,7 +179,7 @@ AfterCall:  +----> +#: ldloc num18
             }
             c.Index--;
 
-            c.Emit(OpCodes.Ldsfld, typeof(UI.MarkerMenu).GetField("Hovering"));
+            c.Emit(OpCodes.Ldsfld, typeof(UI.MarkerMenu).GetField("Hovering")!);
             c.Emit(OpCodes.Brtrue, ifEndLabel);
         }
         private static void Patch_Main_DrawMap_MapDrag(ILContext il)
@@ -190,7 +200,7 @@ AfterCall:  +----> +#: ldloc num18
                 x=>x.MatchBrfalse(out _),
 
                 x=>x.MatchLdsfld<Main>(nameof(Main.mouseLeft)),
-                x => x.MatchBrfalse(out ifEndLabel)
+                x => x.MatchBrfalse(out ifEndLabel!)
                 ))
             {
                 MapMarkers.Logger.Warn("Patch error in Main.DrawMap: MapDrag");
@@ -200,7 +210,7 @@ AfterCall:  +----> +#: ldloc num18
 
             c.Index += 2;
 
-            c.Emit(OpCodes.Ldsfld, typeof(UI.MarkerMenu).GetField("Hovering"));
+            c.Emit(OpCodes.Ldsfld, typeof(UI.MarkerMenu).GetField("Hovering")!);
             c.Emit(OpCodes.Brtrue, ifEndLabel);
         }
         private static void Patch_Player_Update_MapZoom(ILContext il)
@@ -245,7 +255,7 @@ Set:       +> IL_1307: stloc.s   num7
 
             c.Index += 2;
 
-            c.Emit(OpCodes.Ldsfld, typeof(UI.MarkerMenu).GetField("Hovering"));
+            c.Emit(OpCodes.Ldsfld, typeof(UI.MarkerMenu).GetField("Hovering")!);
             c.Emit(OpCodes.Brfalse, noHover);
             c.Emit(OpCodes.Ldc_R4, 0f);
             c.Emit(OpCodes.Br, set);
