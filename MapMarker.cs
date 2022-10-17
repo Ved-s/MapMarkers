@@ -30,6 +30,17 @@ namespace MapMarkers
         public Mod Mod => InstanceMod ??= MapMarkers.MarkerInstances[GetType()].InstanceMod;
 
         internal virtual string SaveModName => Mod.Name;
+        public int NetId
+        {
+            get => MapMarkers.MarkerNetIds.TryGetValue((Mod.Name, Name), out int id) ? id : -1;
+            internal set
+            {
+                if (value < 0)
+                    MapMarkers.MarkerNetIds.Remove((Mod.Name, Name));
+                else
+                    MapMarkers.MarkerNetIds[(Mod.Name, Name)] = value;
+            }
+        }
 
         /// <summary>
         /// Marker display name
@@ -146,7 +157,7 @@ namespace MapMarkers
         public virtual bool CanMove(int whoAmI) => true;
         public virtual bool CanDelete(int whoAmI) => true;
 
-        public bool NeedsSync() => Networking.IsServer || SaveLocation != SaveLocation.Client;
+        public bool NeedsSync() => NetId >= 0 && (Networking.IsServer || SaveLocation != SaveLocation.Client);
     }
 
     [Autoload(false)]

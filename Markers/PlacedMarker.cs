@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using System.Collections.Generic;
+using System.IO;
 using Terraria;
 using Terraria.GameContent;
 using Terraria.ID;
@@ -74,7 +75,6 @@ namespace MapMarkers.Markers
         {
             tag["name"] = DisplayName;
             tag["item"] = ItemIO.Save(DisplayItem);
-            tag["pos"] = Position;
         }
 
         public override void LoadData(TagCompound tag)
@@ -83,8 +83,18 @@ namespace MapMarkers.Markers
                 DisplayName = name;
             if (tag.TryGet("item", out TagCompound item))
                 DisplayItem = ItemIO.Load(item);
-            if (tag.TryGet("pos", out Vector2 pos))
-                Position = pos;
+        }
+
+        public override void SendData(BinaryWriter writer)
+        {
+            writer.Write(DisplayName);
+            ItemIO.Send(DisplayItem, writer);
+        }
+
+        public override void ReceiveData(BinaryReader reader)
+        {
+            DisplayName = reader.ReadString();
+            DisplayItem = ItemIO.Receive(reader);
         }
 
         public override IEnumerable<MarkerMenu.MenuItemDefinition> GetMenuItems()

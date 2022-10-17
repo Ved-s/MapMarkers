@@ -54,10 +54,14 @@ namespace MapMarkers
 
         internal static void ProcessPacket(PacketType type, BinaryReader reader, int whoAmI, ref bool broadcast)
         {
+            broadcast = false;
             switch (type)
             {
+                case PacketType.RequestNetIds:
+                    OnRequestNetIds(reader, whoAmI);
+                    break;
+
                 case PacketType.RequestAllMarkers:
-                    broadcast = false;
                     OnRequestAccessibleMarkers(reader, whoAmI);
                     break;
 
@@ -81,10 +85,19 @@ namespace MapMarkers
 
         internal static void OnJoinWorld()
         {
-            if (!IsClient)
-                return;
+            MapMarkers.MarkerNetIds.Clear();
+            if (IsServer)
+            {
+                int id = 0;
 
-            CreatePacket(PacketType.RequestAllMarkers).Send();
+                foreach (var marker in MapMarkers.MarkerInstances.Values)
+                {
+                    marker.NetId = id;
+                    id++;
+                }
+            }
+            else if (IsClient)
+                CreatePacket(PacketType.RequestNetIds).Send();
         }
         internal static void CopyToStream(Stream from, Stream to, int length)
         {
@@ -131,6 +144,32 @@ namespace MapMarkers
             packet.Send(toClient);
         }
 
+        static void OnRequestNetIds(BinaryReader reader, int whoAmI)
+        {
+            if (IsServer)
+            {
+                ModPacket packet = CreatePacket(PacketType.RequestNetIds);
+
+                packet.Write(MapMarkers.MarkerNetIds.Count);
+
+                foreach (var kvp in MapMarkers.MarkerNetIds)
+                {
+                    packet.Write(kvp.Key.mod);
+                    packet.Write(kvp.Key.name);
+                    packet.Write(kvp.Value);
+                }
+                packet.Send(whoAmI);
+            }
+            else if (IsClient)
+            {
+                MapMarkers.MarkerNetIds.Clear();
+                int count = reader.ReadInt32();
+                for (int i = 0; i < count; i++)
+                    MapMarkers.MarkerNetIds[(reader.ReadString(), reader.ReadString())] = reader.ReadInt32();
+
+                CreatePacket(PacketType.RequestAllMarkers).Send();
+            }
+        }
         static void OnRequestAccessibleMarkers(BinaryReader reader, int whoAmI)
         {
             if (IsServer)
@@ -210,6 +249,7 @@ namespace MapMarkers
 
         public enum PacketType : byte
         {
+            RequestNetIds,
             RequestAllMarkers,
 
             AddMarker,

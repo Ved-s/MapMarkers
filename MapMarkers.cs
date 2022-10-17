@@ -11,6 +11,7 @@ using Terraria;
 using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
+using static Terraria.ModLoader.PlayerDrawLayer;
 
 namespace MapMarkers
 {
@@ -22,6 +23,7 @@ namespace MapMarkers
         public static MapMarkers Instance => ModContent.GetInstance<MapMarkers>();
 
         internal Dictionary<Type, MapMarker> MarkerInstances = new();
+        internal Dictionary<(string mod, string name), int> MarkerNetIds = new();
 
         /// <summary>
         /// List of current player+world markers
@@ -36,6 +38,7 @@ namespace MapMarkers
             tag["id"] = marker.Id.ToByteArray();
             tag["name"] = marker.Name;
             tag["mod"] = marker.SaveModName;
+            tag["pos"] = marker.Position;
             TagCompound data = new();
             marker.SaveData(data);
             tag["data"] = data;
@@ -64,6 +67,9 @@ namespace MapMarkers
             if (markerData.TryGet("id", out byte[] id))
                 marker.Id = new(id);
 
+            if (markerData.TryGet("pos", out Vector2 pos))
+                marker.Position = pos;
+
             marker.SaveLocation = currentLocation;
 
             if (markerData.TryGet("data", out TagCompound data))
@@ -74,27 +80,25 @@ namespace MapMarkers
 
         public static void SendMarker(MapMarker marker, BinaryWriter writer)
         {
-            writer.Write(marker.SaveModName);
-            writer.Write(marker.Name);
+            if (marker.NetId < 0)
+                throw new ArgumentException("Marker must be netsynced to send it", nameof(marker));
+
+            writer.Write(marker.NetId);
             writer.Write(marker.Id.ToByteArray());
+            writer.Write(marker.Position.X);
+            writer.Write(marker.Position.Y);
             SafeIO io = SafeIO.SafeWrite(writer);
             marker.SendData(writer);
             io.EndWrite();
         }
         public static MapMarker? ReceiveMarker(BinaryReader reader)
         {
-            string mod = reader.ReadString();
-            string name = reader.ReadString();
+            int netId = reader.ReadInt32();
             Guid id = new(reader.ReadBytes(16));
+            Vector2 pos = new(reader.ReadSingle(), reader.ReadSingle());
             SafeIO io = SafeIO.SafeRead(reader);
 
-            if (!ModLoader.TryGetMod(mod, out Mod modInst))
-            {
-                io.EndRead(out _);
-                return null;
-            }
-
-            if (modInst.GetContent().FirstOrDefault(c => c is MapMarker m && m.Name == name) is not MapMarker marker)
+            if (netId < 0 || Instance.MarkerInstances.Values.FirstOrDefault(m => m.NetId == netId) is not MapMarker marker)
             {
                 io.EndRead(out _);
                 return null;
@@ -102,6 +106,7 @@ namespace MapMarkers
 
             marker = marker.CreateInstance();
             marker.Id = id;
+            marker.Position = pos;
             marker.SaveLocation = Structures.SaveLocation.Server;
             marker.ReceiveData(reader);
             io.EndRead(out int readError);

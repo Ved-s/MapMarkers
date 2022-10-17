@@ -27,6 +27,7 @@ namespace MapMarkers
         public override void OnWorldLoad()
         {
             MapMarkers.MarkerGuids.Clear();
+            Networking.OnJoinWorld();
         }
 
         public override void OnWorldUnload()
