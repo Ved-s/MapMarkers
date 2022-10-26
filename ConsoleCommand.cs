@@ -51,9 +51,10 @@ namespace MapMarkers
             {
                 sb.AppendLine($"{marker.GetType().Name} ({marker.Mod.Name}) {marker.DisplayName}");
                 sb.AppendLine($"{marker.SaveLocation}-side, {marker.Id} ({MapMarkers.MarkerGuids.GetShortGuid(marker.Id)})");
-                if (marker is PlacedMarker placed)
-                    sb.AppendLine($"Item: {placed.DisplayItem.HoverName}");
                 sb.AppendLine($"{marker.Position}");
+
+                marker.AddDebugInfo(sb);
+                
                 sb.AppendLine();
             }
 

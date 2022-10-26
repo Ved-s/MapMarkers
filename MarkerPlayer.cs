@@ -1,5 +1,6 @@
 ﻿using MapMarkers.Buffs;
 using MapMarkers.Items;
+using MapMarkers.Markers;
 using MapMarkers.Structures;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;

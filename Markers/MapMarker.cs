@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using static MapMarkers.UI.MarkerMenu;
 using System.IO;
 
-namespace MapMarkers
+namespace MapMarkers.Markers
 {
     /// <summary>
     /// Base class for map markers
@@ -98,7 +98,7 @@ namespace MapMarkers
         /// </summary>
         public Rect ScreenRect { get; internal set; }
 
-        public PlayerMarkerData PlayerData 
+        public PlayerMarkerData PlayerData
         {
             get
             {
@@ -158,6 +158,31 @@ namespace MapMarkers
         public virtual bool CanDelete(int whoAmI) => true;
 
         public bool NeedsSync() => NetId >= 0 && (Networking.IsServer || SaveLocation != SaveLocation.Client);
+
+        /// <summary>
+        /// Create packet for another marker with the same type
+        /// </summary>
+        /// <param name="id">If null, packet will be received by base instance</param>
+        /// <param name="type">Message type that will be passed to <see cref="HandlePacket"/></param>
+        /// <returns></returns>
+        public ModPacket CreatePacket(Guid? id, ushort type)
+        {
+            if (id is null)
+                return Networking.CreateMarkerInstancePacket(NetId, type);
+
+            return Networking.CreateMarkerIdPacket(id.Value, type);
+        }
+
+        /// <summary>
+        /// Called whenever new custom message created by <see cref="CreatePacket"/> is received for this marker
+        /// </summary>
+        /// <param name="reader">Message reader</param>
+        /// <param name="type">Message type that has been set in <see cref="CreatePacket"/></param>
+        /// <param name="whoAmI">Message author</param>
+        /// <param name="broadcast">On server side, setting this to true will make the message broadcasted to all other clients</param>
+        public virtual void HandlePacket(BinaryReader reader, ushort type, int whoAmI, ref bool broadcast) { }
+
+        public virtual void AddDebugInfo(StringBuilder builder) { }
     }
 
     [Autoload(false)]
@@ -174,7 +199,7 @@ namespace MapMarkers
             InstanceMod = ModContent.GetInstance<MapMarkers>();
         }
 
-        public override void Draw() 
+        public override void Draw()
         {
 
         }

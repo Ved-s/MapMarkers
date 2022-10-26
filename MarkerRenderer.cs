@@ -1,4 +1,5 @@
-﻿using MapMarkers.Structures;
+﻿using MapMarkers.Markers;
+using MapMarkers.Structures;
 using MapMarkers.UI;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Xna.Framework;
@@ -211,7 +212,6 @@ namespace MapMarkers
                     MouseTextBuilder.AppendLine(MapMarkers.GetLangValue("Marker.Pinned"));
                 else if (!marker.PlayerData.Enabled)
                     MouseTextBuilder.AppendLine(MapMarkers.GetLangValue("Marker.Disabled"));
-
 
                 MouseTextBuilder.AppendFormat("[c/aaaaaa:{0} ({1}) [{2}][c/bbbbbb:]]\n", marker.Name, marker.Mod.Name, MapMarkers.MarkerGuids.GetShortGuid(marker.Id));
 

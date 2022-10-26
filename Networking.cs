@@ -10,6 +10,8 @@ using Terraria.ModLoader;
 using System.Buffers;
 using Terraria.GameContent;
 using Microsoft.Xna.Framework;
+using MapMarkers.Markers;
+using log4net.Repository.Hierarchy;
 
 namespace MapMarkers
 {
@@ -65,6 +67,10 @@ namespace MapMarkers
                     OnRequestAccessibleMarkers(reader, whoAmI);
                     break;
 
+                case PacketType.MarkerMessage:
+                    OnMarkerMessage(reader, whoAmI, ref broadcast);
+                    break;
+
                 case PacketType.AddMarker:
                     OnAddMarker(reader, whoAmI, out broadcast);
                     break;
@@ -112,6 +118,24 @@ namespace MapMarkers
             }
 
             ArrayPool<byte>.Shared.Return(buffer);
+        }
+
+        public static ModPacket CreateMarkerInstancePacket(int netId, ushort type)
+        {
+            ModPacket packet = CreatePacket(PacketType.MarkerMessage);
+            packet.Write(type);
+            packet.Write(true);
+            packet.Write(netId);
+            return packet;
+        }
+        public static ModPacket CreateMarkerIdPacket(Guid id, ushort type)
+        {
+            ModPacket packet = CreatePacket(PacketType.MarkerMessage);
+            packet.Write(type);
+            packet.Write(false);
+            packet.Write(id.ToByteArray());
+            
+            return packet;
         }
 
         static MapMarker? GetMarkerByReadId(BinaryReader reader)
@@ -196,6 +220,41 @@ namespace MapMarkers
                 }
             }
         }
+        static void OnMarkerMessage(BinaryReader reader, int whoAmI, ref bool broadcast)
+        {
+            ushort type = reader.ReadUInt16();
+            bool instanced = reader.ReadBoolean();
+            MapMarker? marker = null;
+            broadcast = false;
+
+            if (instanced)
+            {
+                int netId = reader.ReadInt32();
+                if (netId < 0)
+                {
+                    MapMarkers.Logger.WarnFormat("Received message for unknown marker witn NetId {0}", netId);
+                    return;
+                }
+                marker = MapMarkers.MarkerInstances.Values.FirstOrDefault(m => m.NetId == netId);
+            }
+            else 
+            {
+                Guid id = new(reader.ReadBytes(16));
+                if (!MapMarkers.Markers.TryGetValue(id, out marker))
+                {
+                    MapMarkers.Logger.WarnFormat("Received message for unknown marker with id {0}", id);
+                    return;
+                }
+            }
+
+            if (marker is null)
+            {
+                MapMarkers.Logger.WarnFormat("Received message for unknown marker");
+                return;
+            }
+
+            marker.HandlePacket(reader, type, whoAmI, ref broadcast);
+        }
         static void OnAddMarker(BinaryReader reader, int whoAmI, out bool broadcast)
         {
             MapMarker? marker = MapMarkers.ReceiveMarker(reader);
@@ -251,6 +310,7 @@ namespace MapMarkers
         {
             RequestNetIds,
             RequestAllMarkers,
+            MarkerMessage,
 
             AddMarker,
             MoveMarker,

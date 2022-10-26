@@ -1,4 +1,5 @@
-﻿using MapMarkers.Structures;
+﻿using MapMarkers.Markers;
+using MapMarkers.Structures;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -125,7 +126,6 @@ namespace MapMarkers
             if (syncToOthers && marker.NeedsSync())
                 Networking.AddMarker(marker);
         }
-        // TODO when Netcode: add net handling
 
         public void RemoveMarker(MapMarker marker, bool syncToOthers)
         {

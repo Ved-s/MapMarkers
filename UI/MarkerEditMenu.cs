@@ -21,6 +21,7 @@ namespace MapMarkers.UI
 
         static UIState? State;
         static UIPanel? MainPanel;
+        static UIElement? LeftBox;
 
         static UIFocusInputTextField? NameInput;
 
@@ -74,7 +75,7 @@ namespace MapMarkers.UI
                 TextOriginX = .5f
             });
 
-            UIElement leftBox = new()
+            LeftBox = new()
             {
                 Top = new(30, 0),
                 Left = new(4, 0),
@@ -82,17 +83,17 @@ namespace MapMarkers.UI
                 Height = new(-30, 1),
             };
 
-            InitNameInput(leftBox);
-            InitSettings(leftBox);
-            leftBox.Append(Description = new()
+            InitNameInput(LeftBox);
+            InitSettings(LeftBox);
+            LeftBox.Append(Description = new()
             {
                 Top = new(105, 0),
                 Width = new(0, 1),
             });
 
-            MainPanel.Append(leftBox);
-            InitMPVisibility(leftBox);
-            InitMPPermissions(leftBox);
+            MainPanel.Append(LeftBox);
+            InitMPVisibility(LeftBox);
+            InitMPPermissions(LeftBox);
 
             InitItemSearch();
             UpdateSearch();
@@ -186,7 +187,7 @@ namespace MapMarkers.UI
             {
                 Top = new(210, 0),
                 Left = new(0, 0),
-                Width = new(0, .33f),
+                Width = new(0, .5f),
 
                 BackColor = new(32, 32, 64, 200),
                 DotColor = Color.Yellow,
@@ -195,29 +196,37 @@ namespace MapMarkers.UI
                 RadioGroup = "mpv"
             });
 
-            box.Append(TeamSwitch = new()
-            {
-                Top = new(210, 0),
-                Left = new(0, .33f),
-                Width = new(0, .33f),
-
-                BackColor = new(32, 32, 64, 200),
-                DotColor = Color.Yellow,
-                Text = MapMarkers.GetLangValue("EditUI.MPVisibility.Team"),
-                RadioGroup = "mpv"
-            });
+            //box.Append(TeamSwitch = new()
+            //{
+            //    Top = new(210, 0),
+            //    Left = new(0, .33f),
+            //    Width = new(0, .33f),
+            //
+            //    BackColor = new(32, 32, 64, 200),
+            //    DotColor = Color.Yellow,
+            //    Text = MapMarkers.GetLangValue("EditUI.MPVisibility.Team"),
+            //    RadioGroup = "mpv"
+            //});
 
             box.Append(GlobalSwitch = new()
             {
                 Top = new(210, 0),
-                Left = new(0, .66f),
-                Width = new(0, .33f),
+                Left = new(0, .5f),
+                Width = new(0, .5f),
 
                 BackColor = new(32, 32, 64, 200),
                 DotColor = Color.Yellow,
                 Text = MapMarkers.GetLangValue("EditUI.MPVisibility.Global"),
                 RadioGroup = "mpv"
             });
+
+            GlobalSwitch.StateChangedByUser += () =>
+            {
+                if (Marker is null)
+                    return;
+
+                Marker.ServerSide = GlobalSwitch?.State ?? false;
+            };
         }
         static void InitMPPermissions(UIElement box)
         {
@@ -251,6 +260,22 @@ namespace MapMarkers.UI
                 Text = MapMarkers.GetLangValue("EditUI.MPPermissions.Delete"),
                 State = true
             });
+
+            DeleteSwitch.StateChangedByUser += () =>
+            {
+                if (Marker is null)
+                    return;
+
+                Marker.AnyoneCanRemove = DeleteSwitch.State;
+            };
+
+            EditSwitch.StateChangedByUser += () =>
+            {
+                if (Marker is null)
+                    return;
+
+                Marker.AnyoneCanEdit = EditSwitch.State;
+            };
         }
 
         static void InitOkBtn()
@@ -439,14 +464,44 @@ namespace MapMarkers.UI
             if (PinnedSwitch is not null)
                 PinnedSwitch.State = Marker is not null && Marker.PlayerData.Pinned;
 
-            // TODO: Multiplayer
-            MultiplayerLabel?.Remove();
-            LocalSwitch?.Remove();
-            TeamSwitch?.Remove();
-            GlobalSwitch?.Remove();
-            PermissionsLabel?.Remove();
-            EditSwitch?.Remove();
-            DeleteSwitch?.Remove();
+            if (LeftBox is null || Marker is null || !Marker.CheckOwnerPermission(Main.myPlayer))
+            {
+                LocalSwitch?.Remove();
+                GlobalSwitch?.Remove();
+
+                PermissionsLabel?.Remove();
+                EditSwitch?.Remove();
+                DeleteSwitch?.Remove();
+            }
+            else 
+            {
+                if (LocalSwitch is not null)
+                {
+                    LeftBox.Append(LocalSwitch);
+                    LocalSwitch.State = !Marker.ServerSide;
+                }
+
+                if (GlobalSwitch is not null)
+                {
+                    LeftBox.Append(GlobalSwitch);
+                    GlobalSwitch.State = Marker.ServerSide;
+                }
+
+                if (PermissionsLabel is not null)
+                    LeftBox.Append(PermissionsLabel);
+
+                if (EditSwitch is not null)
+                {
+                    LeftBox.Append(EditSwitch);
+                    EditSwitch.State = Marker.AnyoneCanEdit;
+                }
+
+                if (DeleteSwitch is not null)
+                {
+                    LeftBox.Append(DeleteSwitch);
+                    DeleteSwitch.State = Marker.AnyoneCanRemove;
+                }
+            }
         }
 
         public static void Show(PlacedMarker marker)
