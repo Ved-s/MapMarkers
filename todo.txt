@@ -1,16 +1,2 @@
-Multiplayer:
-	All markers:
-		Sync from server
-		Marker net messages
-		
-		ClientServerMarker:
-			MarkerServerData (Owner, delete perm, visibility)
-			MakeServerSide
-			Delete
-			Visibility
-		
-	PlacedMarker:
-		Edit permission
-		
 Edit UI:
-	Autopause if when enabled
+	Autopause when enabled
