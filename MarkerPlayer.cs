@@ -3,6 +3,7 @@ using MapMarkers.Items;
 using MapMarkers.Markers;
 using MapMarkers.Structures;
 using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria;
@@ -27,6 +28,15 @@ namespace MapMarkers
                 .Where(m => m.SaveLocation == SaveLocation.Client)
                 .Select(m => MapMarkers.SaveMarker(m))
                 .ToList();
+
+            if (Player.TryGetModPlayer(out Compat.OldClientMarkers oldMarkers) && oldMarkers.HasData)
+            {
+                foreach (var kvp in oldMarkers.Markers)
+                    if (Main.worldID != kvp.Key)
+                        CurrentMarkerData[kvp.Key.ToString()] = kvp.Value
+                            .Select(m => MapMarkers.SaveMarker(m))
+                            .ToList();
+            }
 
             tag["markers"] = CurrentMarkerData;
             tag["pmd"] = PlayerMarkerData.Save();
@@ -60,6 +70,17 @@ namespace MapMarkers
                 }
             }
             PlayerMarkerData.Load(CurrentPMD);
+
+            if (Player.TryGetModPlayer(out Compat.OldClientMarkers oldMarkers) && oldMarkers.HasData)
+            {
+                if (oldMarkers.Markers.TryGetValue(Main.worldID, out var list))
+                    foreach (PlacedMarker m in list)
+                        MapMarkers.AddMarker(m, false);
+
+                foreach (Guid pin in oldMarkers.Pins)
+                    PlayerMarkerData.GetByMarkerId(pin).Pinned = true;
+            }
+            
             Networking.OnJoinWorld();
         }
 

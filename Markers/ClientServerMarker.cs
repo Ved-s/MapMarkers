@@ -9,6 +9,8 @@ namespace MapMarkers.Markers
 {
     public abstract class ClientServerMarker : MapMarker
     {
+        internal protected bool IgnoreSetChecks { get; internal set; } = false;
+
         public string? Owner;
 
         public bool ServerSide
@@ -16,6 +18,12 @@ namespace MapMarkers.Markers
             get => serverSide;
             set
             {
+                if (IgnoreSetChecks)
+                {
+                    serverSide = value;
+                    return;
+                }
+
                 if (value == serverSide || !CheckOwnerPermission(Main.myPlayer))
                     return;
 
@@ -38,7 +46,7 @@ namespace MapMarkers.Markers
             get => anyoneCanRemove;
             set
             {
-                if (!ServerSide)
+                if (!ServerSide || IgnoreSetChecks)
                 {
                     anyoneCanRemove = value;
                     return;

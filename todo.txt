@@ -1,2 +1,3 @@
-Edit UI:
-	Autopause when enabled
+Autopause when UI is open
+More console commands
+Marker limit

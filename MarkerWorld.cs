@@ -19,6 +19,10 @@ namespace MapMarkers
         internal static MapMarkers MapMarkers => ModContent.GetInstance<MapMarkers>();
         internal static ModKeybind CreateMarkerKeybind = null!;
 
+        // Limit marker count per player in MP
+        // TODO: implement this
+        public int PlayerMarkerCap = 10;
+
         public override void Load()
         {
             CreateMarkerKeybind = KeybindLoader.RegisterKeybind(MapMarkers, "Create marker", Keys.OemPeriod);
@@ -41,6 +45,7 @@ namespace MapMarkers
                 .Where(m => m.SaveLocation == SaveLocation.Server)
                 .Select(m => MapMarkers.SaveMarker(m))
                 .ToList();
+            tag["mpcap"] = PlayerMarkerCap;
         }
 
         public override void LoadWorldData(TagCompound tag)
@@ -54,6 +59,8 @@ namespace MapMarkers
 
                     MapMarkers.AddMarker(marker, false);
                 }
+            if (tag.TryGet("mpcap", out int mpcap))
+                PlayerMarkerCap = mpcap;
         }
 
         public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)

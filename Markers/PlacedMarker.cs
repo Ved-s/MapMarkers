@@ -10,6 +10,7 @@ using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
+using Terraria.Net;
 
 namespace MapMarkers.Markers
 {
@@ -20,6 +21,12 @@ namespace MapMarkers.Markers
             get => anyoneCanEdit;
             set
             {
+                if (IgnoreSetChecks)
+                {
+                    anyoneCanEdit = value;
+                    return;
+                }
+
                 if (anyoneCanEdit == value || !CheckOwnerPermission(Main.myPlayer))
                     return;
 
@@ -39,6 +46,12 @@ namespace MapMarkers.Markers
             get => base.DisplayName;
             set
             {
+                if (IgnoreSetChecks)
+                {
+                    base.DisplayName = value;
+                    return;
+                }
+
                 if (base.DisplayName == value || !CheckOwnerPermission(Main.myPlayer))
                     return;
 
@@ -58,6 +71,13 @@ namespace MapMarkers.Markers
             get => displayItem;
             set 
             {
+                if (IgnoreSetChecks)
+                {
+                    displayItem = value;
+                    ItemTextureCache = null;
+                    return;
+                }
+
                 if (!CheckOwnerPermission(Main.myPlayer))
                     return;
 
