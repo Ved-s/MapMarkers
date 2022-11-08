@@ -18,7 +18,7 @@ namespace MapMarkers
 
         public override string Description => "Map Markers control command";
 
-        static string[] Subcommands = new[] { "add-marker", "list-markers" };
+        static string[] Subcommands = new[] { "add-marker", "list-markers", "remove-marker", "marker-limit" };
 
         public override void Action(CommandCaller caller, string input, string[] args)
         {
@@ -31,6 +31,8 @@ namespace MapMarkers
                 {
                     case "add-marker": AddMarkerSubcommand(reader, caller); return;
                     case "list-markers": ListMarkersSubcommand(reader, caller); return;
+                    case "remove-marker": RemoveMarkerSubcommand(reader, caller); return;
+                    case "marker-limit": MarkerLimitSubcommand(reader, caller); return;
                     default: caller.Reply($"{sub}: Not implemented"); return;
                 }
             }
@@ -60,7 +62,6 @@ namespace MapMarkers
 
             caller.Reply(sb.ToString());
         }
-
         static void AddMarkerSubcommand(ArgReader args, CommandCaller caller)
         {
             if (!args.HasMoreArgs())
@@ -80,6 +81,22 @@ namespace MapMarkers
 
             MapMarkers.AddMarker(marker, true);
             caller.Reply("Success");
+        }
+        static void RemoveMarkerSubcommand(ArgReader args, CommandCaller caller)
+        {
+            MapMarker marker = args.ReadMarker();
+            MapMarkers.RemoveMarker(marker, true);
+        }
+        static void MarkerLimitSubcommand(ArgReader args, CommandCaller caller)
+        {
+            if (!args.HasMoreArgs())
+            {
+                caller.Reply($"Current limit: {Networking.PlayerMarkerCap}");
+                return;
+            }
+            Networking.PlayerMarkerCap = args.ReadInt();
+            Networking.SyncMarkerCap();
+            caller.Reply($"Set limit to: {Networking.PlayerMarkerCap}");
         }
     }
 
@@ -130,6 +147,26 @@ namespace MapMarkers
                 return id;
             }
             return ItemHelper.GetByName(arg);
+        }
+
+        public MapMarker ReadMarker()
+        {
+            string str = ReadString();
+            Guid? id = MapMarkers.Instance.MarkerGuids.GetGuid(str);
+            if (!id.HasValue || !MapMarkers.Instance.Markers.TryGetValue(id.Value, out MapMarker? marker))
+            {
+                Error($"No marker with id {str}");
+                return null!;
+            }
+            
+            return marker;
+        }
+
+        public int ReadInt()
+        {
+            if (!int.TryParse(ReadString(), out int value))
+                Error($"invalid int argument {Pos - 1}");
+            return value;
         }
 
         public float ReadFloat()

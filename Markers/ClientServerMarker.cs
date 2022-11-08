@@ -162,7 +162,7 @@ namespace MapMarkers.Markers
             }
         }
 
-        enum MessageType : ushort 
+        enum MessageType : ushort
         {
             SetRemovePermission = 0xf000
         }

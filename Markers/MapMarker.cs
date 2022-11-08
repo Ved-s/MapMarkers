@@ -54,7 +54,6 @@ namespace MapMarkers.Markers
 
         /// <summary>
         /// Marker position in world tiles coordinates<br/>
-        /// <b>Warning!</b> Position is not saved automatically
         /// </summary>
         public virtual Vector2 Position { get; set; }
 
@@ -144,6 +143,10 @@ namespace MapMarkers.Markers
         /// Called when loading this marker's data
         /// </summary>
         public virtual void LoadData(TagCompound tag) { }
+
+        public virtual void ResetStaticData(bool world) { }
+        public virtual void SaveStaticData(TagCompound tag, bool world) { }
+        public virtual void LoadStaticData(TagCompound tag, bool world) { }
 
         public virtual bool ShouldBeSentTo(int whoAmI) => true;
 

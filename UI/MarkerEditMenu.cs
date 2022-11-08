@@ -32,8 +32,9 @@ namespace MapMarkers.UI
         static UISwitch? EnabledSwitch, PinnedSwitch;
         static UIAutoLabel? Description;
 
+        static UIText? MultiplayerLimitedLabel;
         static UIText? MultiplayerLabel;
-        static UISwitch? LocalSwitch, TeamSwitch, GlobalSwitch;
+        static UISwitch? LocalSwitch, GlobalSwitch;
 
         static UIText? PermissionsLabel;
         static UISwitch? EditSwitch, DeleteSwitch;
@@ -101,6 +102,15 @@ namespace MapMarkers.UI
             InitDescriptions();
 
             InitOkBtn();
+
+            MultiplayerLimitedLabel = new(MapMarkers.GetLangValue("EditUI.MPLimited"))
+            {
+                Top = new(190, 0),
+                Width = new(0, 1),
+                Height = new(20, 0),
+
+                TextOriginX = .5f
+            };
 
             Initialized = true;
         }
@@ -436,7 +446,7 @@ namespace MapMarkers.UI
             BindDescription(PinnedSwitch, "EditUI.Descriptions.PinnedSwitch");
 
             BindDescription(LocalSwitch, "EditUI.Descriptions.LocalSwitch");
-            BindDescription(TeamSwitch, "EditUI.Descriptions.TeamSwitch");
+            //BindDescription(TeamSwitch, "EditUI.Descriptions.TeamSwitch");
             BindDescription(GlobalSwitch, "EditUI.Descriptions.GlobalSwitch");
 
             BindDescription(EditSwitch, "EditUI.Descriptions.EditSwitch");
@@ -464,17 +474,39 @@ namespace MapMarkers.UI
             if (PinnedSwitch is not null)
                 PinnedSwitch.State = Marker is not null && Marker.PlayerData.Pinned;
 
-            if (LeftBox is null || Marker is null || !Marker.CheckOwnerPermission(Main.myPlayer))
+            if (Networking.IsSingleplayer || LeftBox is null || Marker is null || !Networking.OtherSideMod || !Marker.CheckOwnerPermission(Main.myPlayer))
             {
+                MultiplayerLabel?.Remove();
                 LocalSwitch?.Remove();
                 GlobalSwitch?.Remove();
 
                 PermissionsLabel?.Remove();
                 EditSwitch?.Remove();
                 DeleteSwitch?.Remove();
+                MultiplayerLimitedLabel?.Remove();
             }
-            else 
+
+            else if (!Marker.ServerSide && !Networking.CheckMarkerCap(Main.myPlayer))
             {
+                MultiplayerLabel?.Remove();
+                LocalSwitch?.Remove();
+                GlobalSwitch?.Remove();
+
+                PermissionsLabel?.Remove();
+                EditSwitch?.Remove();
+                DeleteSwitch?.Remove();
+
+                if (MultiplayerLimitedLabel is not null)
+                    LeftBox.Append(MultiplayerLimitedLabel);
+            }
+
+            else
+            {
+                MultiplayerLimitedLabel?.Remove();
+
+                if (MultiplayerLabel is not null)
+                    LeftBox.Append(MultiplayerLabel);
+
                 if (LocalSwitch is not null)
                 {
                     LeftBox.Append(LocalSwitch);

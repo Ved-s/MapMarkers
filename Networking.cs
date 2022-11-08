@@ -28,6 +28,9 @@ namespace MapMarkers
 
         public static bool OtherSideMod => IsClient && MapMarkers.IsNetSynced || IsServer;
 
+        // Limit marker count per player in MP
+        public static int PlayerMarkerCap = 10;
+
         public static ModPacket CreatePacket(PacketType type)
         {
             ModPacket packet = MapMarkers.GetPacket();
@@ -59,8 +62,8 @@ namespace MapMarkers
             broadcast = false;
             switch (type)
             {
-                case PacketType.RequestNetIds:
-                    OnRequestNetIds(reader, whoAmI);
+                case PacketType.Sync:
+                    OnSync(reader, whoAmI);
                     break;
 
                 case PacketType.RequestAllMarkers:
@@ -83,6 +86,10 @@ namespace MapMarkers
                     OnRemoveMarker(reader, whoAmI, out broadcast);
                     break;
 
+                case PacketType.SyncMarkerCap:
+                    OnSyncMarkerCap(reader);
+                    break;
+
                 default:
                     MapMarkers.Logger.WarnFormat("Unknown netmessage {type} from {player}", type, Main.player[whoAmI].name);
                     break;
@@ -103,7 +110,7 @@ namespace MapMarkers
                 }
             }
             else if (IsClient)
-                CreatePacket(PacketType.RequestNetIds).Send();
+                CreatePacket(PacketType.Sync).Send();
         }
         internal static void CopyToStream(Stream from, Stream to, int length)
         {
@@ -149,12 +156,18 @@ namespace MapMarkers
 
         public static void AddMarker(MapMarker marker, int toClient = -1)
         {
+            if (!OtherSideMod)
+                return;
+
             ModPacket packet = CreatePacket(PacketType.AddMarker);
             MapMarkers.SendMarker(marker, packet);
             packet.Send(toClient);
         }
         public static void MoveMarker(MapMarker marker, int toClient = -1)
         {
+            if (!OtherSideMod)
+                return;
+
             ModPacket packet = CreatePacket(PacketType.MoveMarker);
             packet.Write(marker.Id.ToByteArray());
             packet.Write(marker.Position.X);
@@ -163,16 +176,32 @@ namespace MapMarkers
         }
         public static void RemoveMarker(MapMarker marker, int toClient = -1)
         {
+            if (!OtherSideMod)
+                return;
+
             ModPacket packet = CreatePacket(PacketType.RemoveMarker);
             packet.Write(marker.Id.ToByteArray());
             packet.Send(toClient);
         }
+        public static void SyncMarkerCap(int toClient = -1)
+        {
+            ModPacket packet = CreatePacket(PacketType.SyncMarkerCap);
+            packet.Write(PlayerMarkerCap);
+            packet.Send(toClient);
+        }
 
-        static void OnRequestNetIds(BinaryReader reader, int whoAmI)
+        public static bool CheckMarkerCap(int whoAmI)
+        {
+            if (IsSingleplayer || whoAmI < 0 || whoAmI >= 255 || PlayerMarkerCap < 0)
+                return true;
+            return MapMarkers.Markers.Values.Count(m => m is ClientServerMarker csm && csm.ServerSide) < PlayerMarkerCap;
+        }
+
+        static void OnSync(BinaryReader reader, int whoAmI)
         {
             if (IsServer)
             {
-                ModPacket packet = CreatePacket(PacketType.RequestNetIds);
+                ModPacket packet = CreatePacket(PacketType.Sync);
 
                 packet.Write(MapMarkers.MarkerNetIds.Count);
 
@@ -182,6 +211,7 @@ namespace MapMarkers
                     packet.Write(kvp.Key.name);
                     packet.Write(kvp.Value);
                 }
+                packet.Write(PlayerMarkerCap);
                 packet.Send(whoAmI);
             }
             else if (IsClient)
@@ -190,6 +220,8 @@ namespace MapMarkers
                 int count = reader.ReadInt32();
                 for (int i = 0; i < count; i++)
                     MapMarkers.MarkerNetIds[(reader.ReadString(), reader.ReadString())] = reader.ReadInt32();
+
+                PlayerMarkerCap = reader.ReadInt32();
 
                 CreatePacket(PacketType.RequestAllMarkers).Send();
             }
@@ -262,6 +294,13 @@ namespace MapMarkers
 
             if (marker is not null)
             {
+                if (IsServer && !CheckMarkerCap(whoAmI))
+                {
+                    RemoveMarker(marker, whoAmI);
+                    broadcast = false;
+                    return;
+                }
+
                 if (IsClient)
                     marker.SaveLocation = Structures.SaveLocation.Server;
 
@@ -305,16 +344,25 @@ namespace MapMarkers
 
             MapMarkers.RemoveMarker(marker, false);
         }
+        static void OnSyncMarkerCap(BinaryReader reader)
+        {
+            if (!IsClient)
+                return;
+
+            PlayerMarkerCap = reader.ReadInt32();
+        }
 
         public enum PacketType : byte
         {
-            RequestNetIds,
+            Sync,
             RequestAllMarkers,
             MarkerMessage,
 
             AddMarker,
             MoveMarker,
-            RemoveMarker
+            RemoveMarker,
+
+            SyncMarkerCap
         }
     }
 }

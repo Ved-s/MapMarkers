@@ -16,38 +16,31 @@ namespace MapMarkers
 {
     public class MarkerWorld : ModSystem
     {
+        internal static MarkerWorld Instance => ModContent.GetInstance<MarkerWorld>();
         internal static MapMarkers MapMarkers => ModContent.GetInstance<MapMarkers>();
         internal static ModKeybind CreateMarkerKeybind = null!;
-
-        // Limit marker count per player in MP
-        // TODO: implement this
-        public int PlayerMarkerCap = 10;
 
         public override void Load()
         {
             CreateMarkerKeybind = KeybindLoader.RegisterKeybind(MapMarkers, "Create marker", Keys.OemPeriod);
         }
-
         public override void OnWorldLoad()
         {
             MapMarkers.MarkerGuids.Clear();
             Networking.OnJoinWorld();
         }
-
         public override void OnWorldUnload()
         {
             MapMarkers.Markers.RemoveWhere(kvp => kvp.Value.SaveLocation != SaveLocation.Client);
         }
-
         public override void SaveWorldData(TagCompound tag)
         {
             tag["markers"] = MapMarkers.Markers.Values
                 .Where(m => m.SaveLocation == SaveLocation.Server)
                 .Select(m => MapMarkers.SaveMarker(m))
                 .ToList();
-            tag["mpcap"] = PlayerMarkerCap;
+            tag["mpcap"] = Networking.PlayerMarkerCap;
         }
-
         public override void LoadWorldData(TagCompound tag)
         {
             if (tag.TryGet("markers", out List<TagCompound> markers))
@@ -60,22 +53,19 @@ namespace MapMarkers
                     MapMarkers.AddMarker(marker, false);
                 }
             if (tag.TryGet("mpcap", out int mpcap))
-                PlayerMarkerCap = mpcap;
+                Networking.PlayerMarkerCap = mpcap;
         }
-
         public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
         {
             int index = layers.FindIndex(l => l.Name == "Vanilla: Mouse Text");
             if (index >= 0)
                 layers.Insert(index, new LegacyGameInterfaceLayer("MapMarkers: UI", MarkerEditMenu.Draw, InterfaceScaleType.UI));
         }
-
         public override void UpdateUI(GameTime gameTime)
         {
             MarkerMenu.Update(gameTime);
             MarkerEditMenu.Update(gameTime);
         }
-
         public override void PostUpdateInput()
         {
             Keybinds.Update();

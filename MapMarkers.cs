@@ -126,7 +126,6 @@ namespace MapMarkers
             if (syncToOthers && marker.NeedsSync())
                 Networking.AddMarker(marker);
         }
-
         public void RemoveMarker(MapMarker marker, bool syncToOthers)
         {
             Markers.Remove(marker.Id);
@@ -134,7 +133,6 @@ namespace MapMarkers
             if (syncToOthers && marker.NeedsSync())
                 Networking.RemoveMarker(marker);
         }
-
         public void MoveMarker(MapMarker marker, Vector2 pos, bool syncToOthers)
         {
             if (marker.Position == pos)
@@ -153,7 +151,6 @@ namespace MapMarkers
                 return key;
             return Language.GetTextValue(fullKey);
         }
-
         public override void HandlePacket(BinaryReader reader, int whoAmI)
         {
             Networking.HandlePacket(reader, whoAmI);

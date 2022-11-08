@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MapMarkers.Markers;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,7 +22,7 @@ namespace MapMarkers.Compat
                     MapMarkers.Instance.AddMarker(OldClientMarkers.LoadOldMarker(marker), false);
 
             if (tag.TryGet("markerCap", out int markerCap))
-                newWorld.PlayerMarkerCap = markerCap;
+                Networking.PlayerMarkerCap = markerCap;
         }
         public override void SaveWorldData(TagCompound tag) { }
     }

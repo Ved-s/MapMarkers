@@ -83,6 +83,7 @@
 			Ok: Ok
 			Item: Item
 			ItemSearch: Search item
+			MPLimited: Global marker limit reached
 
 			MPVisibility: 
 			{
