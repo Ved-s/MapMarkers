@@ -541,6 +541,7 @@ namespace MapMarkers.UI
             Marker = marker;
             UI.IsVisible = true;
             Main.mapFullscreen = false;
+            Main.playerInventory = false;
 
             if (!Initialized)
                 InitInterface();
@@ -587,7 +588,7 @@ namespace MapMarkers.UI
             if (!UI.IsVisible)
                 return;
 
-            if (Helper.IsFullscreenMap || Helper.IsOverlayMap)
+            if (Helper.IsFullscreenMap || Helper.IsOverlayMap || Main.playerInventory)
                 Hide();
 
             if (Keybinds.DebugReloadInterfaceKeybind.State == KeybindState.JustPressed)

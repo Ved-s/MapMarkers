@@ -1,12 +1,9 @@
-﻿using MapMarkers.Structures;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Mono.Cecil;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using System.Diagnostics;
 using Terraria;
-using Terraria.GameContent;
 using Terraria.GameInput;
 using Terraria.ModLoader;
 
@@ -22,6 +19,7 @@ namespace MapMarkers
         {
             IL.Terraria.Main.DrawMap += Main_DrawMap;
             IL.Terraria.Player.Update += Player_Update;
+            IL.Terraria.Main.CanPauseGame += Main_CanPauseGame;
             On.Terraria.Main.ExecuteCommand += Main_ExecuteCommand;
         }
 
@@ -29,6 +27,7 @@ namespace MapMarkers
         {
             IL.Terraria.Main.DrawMap -= Main_DrawMap;
             IL.Terraria.Player.Update -= Player_Update;
+            IL.Terraria.Main.CanPauseGame -= Main_CanPauseGame;
             On.Terraria.Main.ExecuteCommand -= Main_ExecuteCommand;
         }
 
@@ -38,12 +37,14 @@ namespace MapMarkers
             Patch_Main_DrawMap_Pinging(il);
             Patch_Main_DrawMap_MapDrag(il);
         }
-
         private void Player_Update(ILContext il)
         {
             Patch_Player_Update_MapZoom(il);
         }
-
+        private void Main_CanPauseGame(ILContext il)
+        {
+            Patch_Main_CanPauseGame_UIAutopause(il);
+        }
         private void Main_ExecuteCommand(On.Terraria.Main.orig_ExecuteCommand orig, string text, CommandCaller commandCaller)
         {
             LastConsoleCommand = text;
@@ -58,39 +59,39 @@ namespace MapMarkers
               IL_2E56: ldloca.s  text
 	          IL_2E58: call      void Terraria.ModLoader.SystemLoader::PostDrawFullscreenMap(string&)
 
-                   +#: ldloca text
-                   +#: ldc.i4 1
-                   +#: call MapMarkers.Patches.DrawMap_AfterIcons(string&, bool)
+                   +#: ldloca    text
+                   +#: ldc.i4.1
+                   +#: call      void MapMarkers.Patches.DrawMap(string&, bool)
 
 	          IL_2E5D: ldc.i4.0
 	          IL_2E5E: call      valuetype [FNA]Microsoft.Xna.Framework.Vector2 Terraria.Main::DrawThickCursor(bool)
 	          IL_2E63: ldc.i4.0
 	          IL_2E64: call      void Terraria.Main::DrawCursor(valuetype [FNA]Microsoft.Xna.Framework.Vector2, bool)
               
-            +----- +#: br AfterCall // to not call DrawMap_AfterIcons second time
+            +----- +#: br AfterCall // to not call DrawMap second time
             |
 	        | IL_2E69: ldloc.s   num18   <- if (Main.mapFullscreen) ends here
             |     
             |      +#: pop
-            |      +#: ldloca text
-            |      +#: ldc.i4 1
-            |      +#: call MapMarkers.Patches.DrawMap_AfterIcons(string&, bool)
-AfterCall:  +----> +#: ldloc num18
+            |      +#: ldloca    text
+            |      +#: ldc.i4.1
+            |      +#: call      void MapMarkers.Patches.DrawMap(string&, bool)
+AfterCall:  +----> +#: ldloc     num18
 
              */
             int mouseText = -1;
             int num18 = -1;
 
             if (!c.TryGotoNext(
-                x=>x.MatchLdloca(out mouseText),
-                x=>x.MatchCall(typeof(SystemLoader), nameof(SystemLoader.PostDrawFullscreenMap)),
+                x => x.MatchLdloca(out mouseText),
+                x => x.MatchCall(typeof(SystemLoader), nameof(SystemLoader.PostDrawFullscreenMap)),
 
-                x=>x.MatchLdcI4(out _),
-                x=>x.MatchCall<Main>(nameof(Main.DrawThickCursor)),
-                x=>x.MatchLdcI4(out _),
-                x=>x.MatchCall<Main>(nameof(Main.DrawCursor)),
+                x => x.MatchLdcI4(out _),
+                x => x.MatchCall<Main>(nameof(Main.DrawThickCursor)),
+                x => x.MatchLdcI4(out _),
+                x => x.MatchCall<Main>(nameof(Main.DrawCursor)),
 
-                x=>x.MatchLdloc(out num18)
+                x => x.MatchLdloc(out num18)
                 ))
             {
                 MapMarkers.Logger.Warn("Patch error in Main.DrawMap: DrawAfterIcons");
@@ -118,9 +119,9 @@ AfterCall:  +----> +#: ldloc num18
             /*
               IL_0E65: ldloc.s   flag
 
-                   +#: ldloca text
-                   +#: ldc.i4 0
-                   +#: call MapMarkers.Patches.DrawMap_BeforeIcons(string&, bool)
+                   +#: ldloca    text
+                   +#: ldc.i4.0
+                   +#: call      void MapMarkers.Patches.DrawMap(string&, bool)
 
 	          IL_0E67: brfalse.s IL_0E95
               
@@ -165,12 +166,12 @@ AfterCall:  +----> +#: ldloc num18
 
             if (!c.TryGotoNext(
                 MoveType.After,
-                x=>x.MatchLdsfld<Main>("_lastPingMousePosition"),
-                x=>x.MatchCall<Vector2>(nameof(Vector2.Distance)),
-                x=>x.MatchLdcR4(out _),
-                x=>x.MatchBgeUn(out ifEndLabel!),
+                x => x.MatchLdsfld<Main>("_lastPingMousePosition"),
+                x => x.MatchCall<Vector2>(nameof(Vector2.Distance)),
+                x => x.MatchLdcR4(out _),
+                x => x.MatchBgeUn(out ifEndLabel!),
 
-                x=>x.MatchCall<Main>("get_MouseScreen")
+                x => x.MatchCall<Main>("get_MouseScreen")
                 ))
             {
                 MapMarkers.Logger.Warn("Patch error in Main.DrawMap: Pinging");
@@ -196,10 +197,10 @@ AfterCall:  +----> +#: ldloc num18
             ILLabel ifEndLabel = null!;
 
             if (!c.TryGotoNext(
-                x=>x.MatchLdsfld<Main>(nameof(Main.mapFullscreen)),
-                x=>x.MatchBrfalse(out _),
+                x => x.MatchLdsfld<Main>(nameof(Main.mapFullscreen)),
+                x => x.MatchBrfalse(out _),
 
-                x=>x.MatchLdsfld<Main>(nameof(Main.mouseLeft)),
+                x => x.MatchLdsfld<Main>(nameof(Main.mouseLeft)),
                 x => x.MatchBrfalse(out ifEndLabel!)
                 ))
             {
@@ -212,6 +213,40 @@ AfterCall:  +----> +#: ldloc num18
 
             c.Emit(OpCodes.Ldsfld, typeof(UI.MarkerMenu).GetField("Hovering")!);
             c.Emit(OpCodes.Brtrue, ifEndLabel);
+        }
+        private static void Patch_Main_CanPauseGame_UIAutopause(ILContext il) 
+        {
+            ILCursor c = new(il);
+
+            /*
+              IL_0074: ldloc     pause
+	          IL_0075: ldsfld    bool Terraria.Main::playerInventory
+	          IL_007A: or
+	          IL_007B: stloc     pause
+                        
+                   +#: ldloc     pause
+                   +#: call      bool MapMarkers.Patches.CanAutopause()
+                   +#: or
+                   +#: stloc     pause
+             */
+
+            int pause = -1;
+
+            if (!c.TryGotoNext(MoveType.After,
+                x=>x.MatchLdloc(out pause),
+                x=>x.MatchLdsfld<Main>(nameof(Main.playerInventory)),
+                x=>x.MatchOr(),
+                x=>x.MatchStloc(pause)
+                ))
+            {
+                MapMarkers.Logger.Warn("Patch error in Main.CanPauseGame: UIAutopause");
+                return;
+            }
+
+            c.Emit(OpCodes.Ldloc, pause);
+            c.Emit<Patches>(OpCodes.Call, nameof(CanAutopause));
+            c.Emit(OpCodes.Or);
+            c.Emit(OpCodes.Stloc, pause);
         }
         private static void Patch_Player_Update_MapZoom(ILContext il)
         {
@@ -238,14 +273,14 @@ Set:       +> IL_1307: stloc.s   num7
             ILLabel set = c.DefineLabel();
 
             if (!c.TryGotoNext(
-                x=>x.MatchLdsfld<Main>(nameof(Main.mapFullscreen)),
-                x=>x.MatchBrfalse(out _),
+                x => x.MatchLdsfld<Main>(nameof(Main.mapFullscreen)),
+                x => x.MatchBrfalse(out _),
 
-                x=>x.MatchLdsfld<PlayerInput>(nameof(PlayerInput.ScrollWheelDelta)),
-                x=>x.MatchLdcI4(out _),
-                x=>x.MatchDiv(),
-                x=>x.MatchConvR4(),
-                x=>x.MatchStloc(out _)
+                x => x.MatchLdsfld<PlayerInput>(nameof(PlayerInput.ScrollWheelDelta)),
+                x => x.MatchLdcI4(out _),
+                x => x.MatchDiv(),
+                x => x.MatchConvR4(),
+                x => x.MatchStloc(out _)
                 ))
             {
                 MapMarkers.Logger.Warn("Patch error in PLayer.Update: MapZoom");
@@ -268,6 +303,10 @@ Set:       +> IL_1307: stloc.s   num7
         private static void DrawMap(ref string mouseText, bool onTop)
         {
             ModContent.GetInstance<MarkerRenderer>().DrawMarkers(ref mouseText, onTop);
+        }
+        private static bool CanAutopause()
+        {
+            return UI.MarkerEditMenu.Visible;
         }
     }
 }

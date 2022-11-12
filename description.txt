@@ -1,4 +1,10 @@
 Map Markers allows you to place markers on map.
-Markers are stored per-player so other players on server will not see your markers, unless they set as Global.
-Global markers can be edited or deleted only by their owners, or anyone if owner set marker as "Public edit" or "Public delete".
-Starting with v1.1.0, multiplayer marker limit exists, it is set to 5 per player by default, this can be changed using mod's console command.
+
+Markers can be player-side, so only player who created them can see them,
+Or they can be world-side, so everyone on server can see them.
+
+World-side markers can be edited only by its owner, unless owner allowed marker to be edited globally.
+
+Amount of world-side (aka Global) markers per player in multiplayer world can be edited via mod's server console command.
+
+Starting with version 2, other mods can use MapMarkers API to create their own marker types.
