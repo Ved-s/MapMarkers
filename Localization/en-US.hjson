@@ -1,22 +1,13 @@
 ﻿{
 	Mods.MapMarkers: {
-		ItemName.MarkerTPPotion: Marker Teleportation Potion
-		
-		ItemTooltip.MarkerTPPotion: 
-			'''
-			Allows you to teleport to markers.
-			Only usable without Teleportation Disability debuff.
-			Cannot teleport to unexplored area.
-			'''
-
 		BuffName.TPDisability: Teleportation Disability
 		
-		BuffDescription.TPDisability: You feel sick since using Marker Teleportation Potion
+		BuffDescription.TPDisability: You feel sick after teleporting
 		
 		Chat: 
 		{
 			NotEnoughTPSpace: Not enough space to teleport
-			NoTPPotions: No Marker TP potions
+			NoTPPotions: No Wormhole potions
 		}
 
 		Marker: 
@@ -33,13 +24,13 @@
 
 		MarkerMenuItem: 
 		{
-			Delete:    Delete
-			Edit:      Edit
-			Teleport:  Teleport
-			Pin:       Pin
-			Unpin:     Unpin
-			Disable:   Disable
-			Enable:    Enable
+			Delete:     Delete
+			Edit:       Edit
+			Teleport:   Teleport
+			Pin:        Pin
+			Unpin:      Unpin
+			Disable:    Disable
+			Enable:     Enable
 		}
 
 		MarkerMenuItemDesc:
@@ -51,7 +42,7 @@
 			Teleport:  
 			'''
 			Teleport to the marker
-			Will consume one Marker Teleport Potion
+			Will consume one Wormhole Potion
 			'''
 
 			Pin:       

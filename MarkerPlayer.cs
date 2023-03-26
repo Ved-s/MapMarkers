@@ -1,5 +1,4 @@
 ﻿using MapMarkers.Buffs;
-using MapMarkers.Items;
 using MapMarkers.Markers;
 using MapMarkers.Structures;
 using Microsoft.Xna.Framework;
@@ -97,7 +96,7 @@ namespace MapMarkers
             if (container is null)
                 return false;
 
-            int potionType = MarkerTPPotion.ItemType;
+            int potionType = ItemID.WormholePotion;
 
             foreach (Item item in container)
             {

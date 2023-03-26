@@ -1,6 +1,6 @@
 displayName = Map Markers
 author = Ved_s
-version = 2.0.0
+version = 2.0.1
 side = NoSync
 homepage = https://github.com/Ved-s/MapMarkers/tree/1.4-v2
 buildIgnore = *.fx, Properties/*, workshop.json, *.csproj.user

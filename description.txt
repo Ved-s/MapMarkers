@@ -8,3 +8,5 @@ World-side markers can be edited only by its owner, unless owner allowed marker 
 Amount of world-side (aka Global) markers per player in multiplayer world can be edited via mod's server console command.
 
 Starting with version 2, other mods can use MapMarkers API to create their own marker types.
+
+Teleportation potion was removed due to item desyncs, use Wormhole potions instead.
